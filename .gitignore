@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.env
+node_modules/
+# Analysis output and client material must never be committed (policies PRV-4.1).
+/data/
+/snapshots/
+/bundles/
