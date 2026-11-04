@@ -1,0 +1,23 @@
+# Strata policy constants. Single source for every numeric value in docs/policies.md.
+# Keyed by policy ID. Application code reads this file; no literals elsewhere.
+# `make policy-check` asserts that every key below is named in its cited passage of
+# docs/policies.md, that every constant named in a passage exists here, and that the values match
+# the "Notes for the Development Team" list.
+policy_version: "0.1"
+
+EVD-1.6:
+  max_evidence_excerpt_lines: 40
+
+PRV-4.2:
+  max_prompt_source_lines: 400
+
+REV-5.4:
+  accuracy_target: 0.90
+  accuracy_sample_min: 100
+  accuracy_sample_fraction: 0.10
+
+TST-7.4:
+  char_test_stability_runs: 3
+
+SAF-3.3:
+  pii_refusal_threshold: 0
