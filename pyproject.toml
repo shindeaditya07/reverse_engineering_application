@@ -1,0 +1,38 @@
+[project]
+name = "legacy-reverse-engineering-platform"
+version = "0.0.0"
+description = "Multi-agent platform that reverse-engineers legacy Node/Express apps into evidence-linked documentation."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "pydantic-settings>=2.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "httpx>=0.28",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pip-audit>=2.7",
+    "detect-secrets>=1.5",
+    "pre-commit>=4.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ERA", "DTZ"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["services", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
