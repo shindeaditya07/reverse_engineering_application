@@ -1,0 +1,12 @@
+{
+  "port": 3000,
+  "db": {
+    "host": "localhost",
+    "user": "shop",
+    "password": "S3cr3t!pw-fixture",
+    "database": "shopledger"
+  },
+  "shipping": { "flatFee": 60 },
+  "paymentGateway": { "url": "https://payments.example.invalid/charge", "timeoutMs": 5000 },
+  "plugins": ["audit"]
+}

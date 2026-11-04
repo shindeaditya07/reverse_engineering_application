@@ -1,0 +1,4 @@
+TICKET-4821  (closed)
+Summary: orders.flag_x meaning
+Finance asked what flag_x is. Answer from the original developer: "flag_x = 1 means the order was
+paid by bank transfer and must be reconciled by hand. Leave it 0 otherwise."
