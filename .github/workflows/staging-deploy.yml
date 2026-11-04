@@ -1,0 +1,65 @@
+name: Staging Deploy
+
+# Merging into develop deploys staging (docs/branching-and-environments.md).
+# workflow_dispatch re-runs it, which is required after any Render env change.
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/api" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:staging
+            ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
+
+  deploy:
+    name: Deploy Staging
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip until Render is set up
+        if: ${{ vars.STAGING_API_URL == '' }}
+        run: |
+          echo "::notice::Deploy skipped: the STAGING_API_URL variable is not set on the staging environment. Image was built and pushed. Set it after the Render guide (guides/render-setup.md)."
+          echo "Deploy skipped: STAGING_API_URL not set. Image built and pushed only." >> "$GITHUB_STEP_SUMMARY"
+      - name: Trigger Render deploy
+        if: ${{ vars.STAGING_API_URL != '' }}
+        env:
+          HOOK: ${{ secrets.RENDER_STAGING_API_DEPLOY_HOOK }}
+        run: |
+          test -n "$HOOK" || { echo "RENDER_STAGING_API_DEPLOY_HOOK is not set"; exit 1; }
+          curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
+      - name: Wait until staging reports this commit
+        if: ${{ vars.STAGING_API_URL != '' }}
+        run: python3 scripts/wait_for_version.py --base-url "${{ vars.STAGING_API_URL }}" --expected "${{ github.sha }}" --timeout 900 --interval 15

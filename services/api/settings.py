@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     app_env: str = "local"
     log_level: str = "INFO"
+    git_sha: str = "unknown"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/platform"
 
 
