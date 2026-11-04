@@ -23,6 +23,7 @@ jobs:
       - run: make lint
       - run: make test
       - run: make check-key
+      - run: make policy-check
 
   fixture-syntax:
     runs-on: ubuntu-latest
