@@ -119,7 +119,7 @@ annotations, constraints, triggers, procedures).
 **3.6 Review queue backend** — triggers from REV-5.2, decisions per REV-5.3, decisions as evidence
 (REV-5.5).
 
-**Blocker:** ADR-0004 (model hosting) must be accepted before 3.1.
+**ADR-0004 accepted 2026-11-04 for the fixture and open-source pilot** (hosted API, different providers for producer and judge). Client installs still choose their option at install time.
 
 ---
 
@@ -184,7 +184,7 @@ results.
 ## Open Items at Build Start
 
 1. Choose the specific legacy Node.js pilot app (spec §23 q1; language decided) → before Phase 2.
-2. Decide model hosting and data residency (ADR-0004) → before Phase 3.
+2. ~~Decide model hosting~~ Done for public-code scope (ADR-0004). Client-install option stays open.
 3. Name the reviewer and their weekly hours (spec §23 q4) → before Phase 5.
 4. Define the manual baseline protocol and who runs it (spec §23 q3) → before Phase 5.
 5. Confirm the SQL dialect of the pilot schema (spec §23 q5) → before Phase 2.5.

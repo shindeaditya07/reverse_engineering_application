@@ -1,6 +1,6 @@
 # 0004. Model hosting and data residency
 
-- Status: **proposed — needs the owner's decision**
+- Status: **accepted for the fixture and open-source pilot only (2026-11-04); open for client installs**
 - Date: 2026-11-04
 - Blocks: build-plan 3.1 (ModelGateway) and every LLM step
 
@@ -30,9 +30,25 @@ weakened the check. Plan for independence that survives cost and availability pr
 
 ## Decision
 
-Not yet made. Recommendation: build the gateway so options 1–3 are configuration, run the
-fixture and open-source pilot on option 1, and require each private deployment to pick its option
-explicitly at install, recorded in its own config and audit log.
+**Scope accepted 2026-11-04: the fixture application and one open-source pilot application, both
+public code.** For this scope, use option 1: a hosted API with zero-data-retention / no-training
+terms. The code is public, so the "stays private" constraint does not apply to it, and the
+README says so plainly.
+
+**Not decided: real client code.** Each private deployment must pick option 1, 2 or 3 explicitly at
+install time, recorded in its own config and audit log. This project does not claim private-
+environment support for hosted-model installs it has not built or measured. Quality numbers from
+option 1 runs do not transfer to option 3.
+
+Build rules that follow:
+- The `ModelGateway` makes options 1 to 3 a configuration choice (AGENTS §5).
+- Producer and judge use **different providers**, enforced by the gateway (it refuses the same
+  model ID for both unless `JUDGE_SAME_MODEL_OK=true`). ReplyDesk's ADR-0003 planned this and the
+  measured run then used one provider for both; this ADR is amended in place, with a dated note,
+  if reality differs.
+- Reuse the ReplyDesk gateway pattern (adapters over plain HTTPS, retries on transient errors,
+  per-model circuit breaker, call records) rather than rewriting it.
+- Every eval result in the README names the option, models and prompt hashes that produced it.
 
 ## Consequences
 
