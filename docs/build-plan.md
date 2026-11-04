@@ -37,9 +37,10 @@ sandbox stub), Makefile targets (stubs allowed), `.env.example`, pre-commit, ske
 SHA-256 lock on `policies.md`).
 
 **1.3 Claim store** — Pydantic models and migration `0001_initial`: `snapshots`, `snapshot_files`,
-`claims`, `claim_versions`, `evidence`, `verification_results`, `review_items`,
-`review_decisions`, `artifacts`, `audit_log`, `jobs`, `model_calls`. DB constraints per
-`AGENTS.md` §8.
+`claims`, `evidence`, `verification_results`, `review_items`, `review_decisions`, `audit_log`,
+`jobs`. DB constraints per `AGENTS.md` §8. Claims are immutable; a change is a new row that
+supersedes the old one, so there is no `claim_versions` table. `artifacts` and `model_calls`
+arrive with the phases that produce them (4 and 3). Sync SQLAlchemy: see ADR-0006.
 
 **1.4 Snapshot ingest** — freeze (hash, content-addressed store, read-only mount), archive safety
 checks, secret scan with redaction, PII scan. Safety tests: hash unchanged, hostile archives

@@ -37,9 +37,12 @@ check-key: ## Fail if the fixture answer key has drifted from the fixture app
 fixture-syntax: ## node --check every fixture source file (does not run or install anything)
 	find fixtures/legacy-app -name '*.js' -not -path '*/public/*' -print0 | xargs -0 -n1 node --check
 
+migrate: ## Apply database migrations (needs DATABASE_URL)
+	uv run alembic upgrade head
+
 audit: ## Known-vulnerability check of Python dependencies
 	uv run --with pip-audit pip-audit
 
 # Not implemented yet. These fail on purpose so a stub can never read as a pass.
-migrate eval-smoke eval sandbox-check build:
+eval-smoke eval sandbox-check build:
 	@echo "$@: not implemented yet (see docs/build-plan.md)"; exit 1
