@@ -493,11 +493,25 @@ Evals are built before features.
 
 ### Time-saved baseline
 
-The success criterion needs a manual baseline, and none exists yet. Options, in order of
-credibility: (a) a person analyses a defined slice of the pilot by hand, timed, before seeing
-platform output; (b) a person documents half the modules by hand and the platform does the other
-half, both reviewed to the same standard. Self-estimates are not a baseline. See §23, open
-question 3.
+The success criterion needs a manual baseline, and none exists yet. Self-estimates are not a
+baseline. Protocol (decided 2026-11-04):
+
+1. **Fix the slice first:** about 3 modules and 10 entry points of the pilot, chosen and written
+   down before anyone analyses anything.
+2. **Do the manual analysis first**, timed, by one person, before that person sees any platform
+   output for the pilot. Deliverable: the same artifact types the platform produces for the slice
+   (module doc, interface reference, rules list, ER fragment), reviewed to the same standard.
+3. **Then run the platform** on the whole pilot; log reviewer time on the same slice.
+4. **Compare on the slice only:** manual hours vs. platform run time plus review hours.
+5. **State the limits in the README:** one person, one application, and whether the baseline
+   person and the reviewer were the same (see below).
+
+### Reviewer independence
+
+If the baseline person and the accuracy reviewer are the same, the time-saved and accuracy figures
+are contaminated and the README says so. Guards: accuracy sampling is **blind** (the reviewer sees
+the claim and cited lines, not the tag or the judge verdict), and where a second person is
+available they independently check about 30 sampled claims; agreement is reported.
 
 ### Process
 
@@ -561,9 +575,10 @@ install (PRV-4.1). Details in `docs/branching-and-environments.md`.
 2. **Model hosting and data residency.** Can legacy code be sent to a hosted model API at all, and
    under what terms? Decides ADR-0004. Blocks Phase 3. If the answer is "no external API", a
    self-hosted model is needed and quality targets must be re-set.
-3. **Time-saved baseline.** Who performs the manual analysis, on which slice, and when? Must
+3. **Time-saved baseline.** Protocol decided (§19). Still open: who performs it and when. Must
    happen before that person sees platform output.
-4. **Reviewer.** Who reviews, and how many hours per week? Accuracy sampling at 100+ claims is
-   roughly 4–8 hours of expert time per run. [Guessing: 2–5 minutes per claim.]
+4. **Reviewer.** Proposed: the project owner, blind sampling, second-person check of about 30
+   claims if available (§19). Accuracy sampling at 100+ claims is roughly 4–8 hours of expert
+   time per run. [Guessing: 2–5 minutes per claim.]
 5. **SQL dialect** of the pilot schema.
 6. **High-impact categories** beyond the defaults in REV-5.2.
