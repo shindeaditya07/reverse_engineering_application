@@ -1,0 +1,39 @@
+.PHONY: help install up down lint test check-key fixture-syntax policy-check migrate eval-smoke eval \
+        sandbox-check build audit
+.DEFAULT_GOAL := help
+
+help: ## List targets
+	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
+
+install: ## Install Python dependencies
+	uv sync
+
+up: .env ## Start the local stack
+	docker compose up --build
+
+down: ## Stop and remove containers
+	docker compose down
+
+.env:
+	cp .env.example .env
+
+lint: ## ruff + mypy
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy
+
+test: ## Unit tests (no network, no model calls)
+	uv run pytest
+
+check-key: ## Fail if the fixture answer key has drifted from the fixture app
+	uv run python fixtures/answer-key/check_key.py
+
+fixture-syntax: ## node --check every fixture source file (does not run or install anything)
+	find fixtures/legacy-app -name '*.js' -not -path '*/public/*' -print0 | xargs -0 -n1 node --check
+
+audit: ## Known-vulnerability check of Python dependencies
+	uv run --with pip-audit pip-audit
+
+# Not implemented yet. These fail on purpose so a stub can never read as a pass.
+policy-check migrate eval-smoke eval sandbox-check build:
+	@echo "$@: not implemented yet (see docs/build-plan.md)"; exit 1

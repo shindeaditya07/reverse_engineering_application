@@ -5,6 +5,7 @@ Usage: python3 fixtures/answer-key/check_key.py [--print]
 Checks: file exists, anchor occurs exactly once, min_lines holds, every fixture file is either in
 `modules`, `not_app_code`, or a known non-code file, and all 33 traps T01..T33 are present.
 """
+
 import sys
 from pathlib import Path
 
@@ -39,18 +40,34 @@ def walk(section: str) -> None:
         if "min_lines" in item:
             n = len((APP / item["file"]).read_text(encoding="utf-8").splitlines())
             if n < item["min_lines"]:
-                errors.append(f"{item['id']}: {item['file']} has {n} lines, expected >= {item['min_lines']}")
+                errors.append(
+                    f"{item['id']}: {item['file']} has {n} lines, expected >= {item['min_lines']}"
+                )
 
 
-for sec in ("entry_points", "integrations", "call_edges_confirmed", "call_edges_inferred",
-            "business_rules", "traps"):
+for sec in (
+    "entry_points",
+    "integrations",
+    "call_edges_confirmed",
+    "call_edges_inferred",
+    "business_rules",
+    "traps",
+):
     walk(sec)
 for r in KEY["schema"]["routines"]:
     resolve(r["name"], r["file"], r["anchor"])
 
 known_files = {m["file"] for m in KEY["modules"]} | {m["file"] for m in KEY["not_app_code"]}
-non_code = {"package.json", "config/default.json", "schema.sql", "README.old.md", "Gruntfile.js",
-            "docs/TICKET-4821.txt", "lib/mailer.dev.js", "lib/mailer.prod.js"}
+non_code = {
+    "package.json",
+    "config/default.json",
+    "schema.sql",
+    "README.old.md",
+    "Gruntfile.js",
+    "docs/TICKET-4821.txt",
+    "lib/mailer.dev.js",
+    "lib/mailer.prod.js",
+}
 for f in sorted(p.relative_to(APP).as_posix() for p in APP.rglob("*") if p.is_file()):
     if f not in known_files | non_code:
         errors.append(f"file not listed in the key: {f}")
@@ -61,7 +78,8 @@ for m in known_files:
 trap_ids = {t["id"] for t in KEY["traps"]}
 want = {f"T{i:02d}" for i in range(1, 34)}
 if trap_ids != want:
-    errors.append(f"trap ids differ: missing {sorted(want - trap_ids)}, extra {sorted(trap_ids - want)}")
+    missing, extra = sorted(want - trap_ids), sorted(trap_ids - want)
+    errors.append(f"trap ids differ: missing {missing}, extra {extra}")
 
 if "--print" in sys.argv:
     for item_id, file, line in resolved:
