@@ -31,7 +31,7 @@ select = ["E", "F", "I", "UP", "B", "ERA", "DTZ"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["services", "tests"]
+files = ["services", "tests", "scripts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
