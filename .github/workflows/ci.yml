@@ -67,3 +67,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make build
+
+  policy-integrity-check:
+    name: Policy Integrity Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: make policy-check

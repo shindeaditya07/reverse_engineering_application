@@ -1,4 +1,4 @@
-.PHONY: install up down lint test audit build secrets migrate seed eval eval-smoke policy-check generate-types
+.PHONY: install up down lint test audit build secrets policy-check policy-lock migrate seed eval eval-smoke generate-types
 
 install:
 	uv sync
@@ -26,6 +26,13 @@ build:
 secrets:
 	git ls-files -z | xargs -0 uv run detect-secrets-hook --baseline .secrets.baseline
 
+policy-check:
+	uv run python -I scripts/policy_check.py
+
+# After a reviewed change to docs/rules.md (version bumped) or rules_constants.yaml.
+policy-lock:
+	uv run python -I scripts/policy_check.py --write-lock
+
 # Not built yet. These fail on purpose instead of passing as stubs.
-migrate seed eval eval-smoke policy-check generate-types:
+migrate seed eval eval-smoke generate-types:
 	@echo "make $@ is not built yet (see docs/build-plan.md)"; exit 1
