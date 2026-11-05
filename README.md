@@ -11,7 +11,7 @@ A multi-agent platform that reverse-engineers an undocumented legacy Node/Expres
 - Build plan: [docs/build-plan.md](docs/build-plan.md)
 - Branches and environments: [docs/branching-and-environments.md](docs/branching-and-environments.md)
 
-Eval results: none yet.
+Eval results: none yet. The smoke eval is a self-check of the harness, not a result; real runs are committed under `evals/results/` ([docs/evals.md](docs/evals.md)).
 
 ## Run locally
 
@@ -22,4 +22,4 @@ make test          # pytest with coverage
 docker compose up --build   # db + api on http://localhost:8000/healthz
 ```
 
-Targets that are not built yet (`migrate`, `seed`, `eval`, `eval-smoke`, `policy-check`, `generate-types`) fail on purpose.
+`make eval-smoke` runs the no-model smoke eval (verifier catch rate, scoring sanity). Targets that are not built yet (`seed`, `eval`, `generate-types`) fail on purpose.

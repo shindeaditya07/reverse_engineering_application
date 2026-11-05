@@ -14,7 +14,7 @@ import yaml
 from services.evidence import FileRange, SnapshotReader, parse_ref, resolve
 from services.verifier import ClaimInput, DocSentence, EvidenceInput
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / "fixtures/legacy-app"
 KEY = ROOT / "fixtures/answer-key/key.yaml"
 
@@ -71,23 +71,72 @@ def extra_good(reader: SnapshotReader) -> list[ClaimInput]:
         )
 
     return [
-        claim(1, "The package.json start script runs node app.js.", "confirmed", "deterministic",
-              [{"kind": "build_step", "path": "package.json", "object_name": "npm:start"}]),
-        claim(2, "The orders table has a status column.", "confirmed", "deterministic",
-              [{"kind": "schema_object", "path": "db/schema.sql", "object_name": "column:orders.status"}]),
-        claim(3, "The default tax rate is 0.0825.", "confirmed", "deterministic",
-              [{"kind": "config_key", "path": "config.js", "object_name": "taxRate"}]),
-        claim(4, "The customers table exists.", "confirmed", "deterministic",
-              [{"kind": "schema_object", "path": "db/schema.sql", "object_name": "table:customers"}]),
-        claim(5, "A sum of order lines multiplies price by quantity.", "inferred", "model",
-              [lines("lib/totals.js", 3, 5)],
-              explanation="sumLines adds up the price in cents times the quantity of each item."),
+        claim(
+            1,
+            "The package.json start script runs node app.js.",
+            "confirmed",
+            "deterministic",
+            [{"kind": "build_step", "path": "package.json", "object_name": "npm:start"}],
+        ),
+        claim(
+            2,
+            "The orders table has a status column.",
+            "confirmed",
+            "deterministic",
+            [
+                {
+                    "kind": "schema_object",
+                    "path": "db/schema.sql",
+                    "object_name": "column:orders.status",
+                }
+            ],
+        ),
+        claim(
+            3,
+            "The default tax rate is 0.0825.",
+            "confirmed",
+            "deterministic",
+            [{"kind": "config_key", "path": "config.js", "object_name": "taxRate"}],
+        ),
+        claim(
+            4,
+            "The customers table exists.",
+            "confirmed",
+            "deterministic",
+            [{"kind": "schema_object", "path": "db/schema.sql", "object_name": "table:customers"}],
+        ),
+        claim(
+            5,
+            "A sum of order lines multiplies price by quantity.",
+            "inferred",
+            "model",
+            [lines("lib/totals.js", 3, 5)],
+            explanation="sumLines adds up the price in cents times the quantity of each item.",
+        ),
         claim(6, "Nothing is known about how refunds are issued.", "unknown", "model", []),
-        claim(7, "The label file contains one byte outside UTF-8.", "confirmed", "deterministic",
-              [{"kind": "file_range", "path": "lib/legacy_labels.js", "start_byte": 73, "end_byte": 74}]),
-        claim(8, "The generated API client states its own version.", "confirmed", "deterministic",
-              [lines("generated/api_client.js", 7, 7)], subject_paths=frozenset({"generated/api_client.js"})),
-    ]  # fmt: skip
+        claim(
+            7,
+            "The label file contains one byte outside UTF-8.",
+            "confirmed",
+            "deterministic",
+            [
+                {
+                    "kind": "file_range",
+                    "path": "lib/legacy_labels.js",
+                    "start_byte": 73,
+                    "end_byte": 74,
+                }
+            ],
+        ),
+        claim(
+            8,
+            "The generated API client states its own version.",
+            "confirmed",
+            "deterministic",
+            [lines("generated/api_client.js", 7, 7)],
+            subject_paths=frozenset({"generated/api_client.js"}),
+        ),
+    ]
 
 
 def good_claims(reader: SnapshotReader) -> list[ClaimInput]:
@@ -121,8 +170,13 @@ def bad_claims(reader: SnapshotReader) -> list[tuple[ClaimInput, str]]:
         out.append((claim, check))
 
     # V-1: no evidence at all.
-    for status, kind in [("confirmed", "deterministic"), ("inferred", "model"), ("confirmed", "test"),
-                         ("inferred", "deterministic"), ("inferred", "human")]:  # fmt: skip
+    for status, kind in [
+        ("confirmed", "deterministic"),
+        ("inferred", "model"),
+        ("confirmed", "test"),
+        ("inferred", "deterministic"),
+        ("inferred", "human"),
+    ]:
         add("V-1", _base(reader, status=status, producer_kind=kind, evidence=(), explanation=None))
     # V-2: a reference that does not resolve.
     unresolved: list[dict[str, Any]] = [
@@ -142,8 +196,14 @@ def bad_claims(reader: SnapshotReader) -> list[tuple[ClaimInput, str]]:
     for start, end in [(1, 41), (5, 100), (1, 500), (3, 43), (100, 141)]:
         add("V-4", _base(reader, evidence=(EvidenceInput(lines("app.js", start, end), "0" * 64),)))
     # V-5: a status that is not one of three, or does not match how it was produced.
-    for status, kind in [("maybe", "model"), ("accepted", "model"), ("", "deterministic"),
-                         ("confirmed", "oracle"), ("confirmed", "human"), ("inferred", "test")]:  # fmt: skip
+    for status, kind in [
+        ("maybe", "model"),
+        ("accepted", "model"),
+        ("", "deterministic"),
+        ("confirmed", "oracle"),
+        ("confirmed", "human"),
+        ("inferred", "test"),
+    ]:
         add("V-5", _base(reader, status=status, producer_kind=kind))
     # V-6: a model alone produced Confirmed.
     for text in [
@@ -155,8 +215,12 @@ def bad_claims(reader: SnapshotReader) -> list[tuple[ClaimInput, str]]:
     ]:
         add("V-6", _base(reader, text=text, status="confirmed", producer_kind="model"))
     # V-7: authored behaviour cited to a generated or vendored file.
-    for ref in [lines("generated/api_client.js", 1, 3), lines("generated/api_client.js", 8, 10),
-                lines("vendor/tinyid.js", 1, 1), lines("vendor/tinyid.js", 4, 6)]:  # fmt: skip
+    for ref in [
+        lines("generated/api_client.js", 1, 3),
+        lines("generated/api_client.js", 8, 10),
+        lines("vendor/tinyid.js", 1, 1),
+        lines("vendor/tinyid.js", 4, 6),
+    ]:
         add("V-7", _base(reader, evidence=(stored(reader, ref),), explanation=None))
     add(
         "V-7",

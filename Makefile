@@ -1,4 +1,4 @@
-.PHONY: verifier-report install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
+.PHONY: install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
 
 install:
 	uv sync
@@ -18,9 +18,10 @@ test:
 	uv run pytest --cov=services --cov-branch --cov-report=term-missing --cov-report=json
 	uv run python -I scripts/check_verifier_coverage.py
 
-# Catch rate on the seeded bad corpus and false-block rate on the good one, with intervals.
-verifier-report:
-	uv run python scripts/verifier_report.py
+# Smoke eval: no model. Verifier catch rate on the seeded bad corpus (must be 100%) and a
+# check that scoring a run that copies the key gives 100%. Prints rates with intervals.
+eval-smoke:
+	uv run python -m services.evals smoke
 
 audit:
 	uv run pip-audit
@@ -47,5 +48,5 @@ migrate:
 	uv run alembic upgrade head
 
 # Not built yet. These fail on purpose instead of passing as stubs.
-seed eval eval-smoke generate-types:
+seed eval generate-types:
 	@echo "make $@ is not built yet (see docs/build-plan.md)"; exit 1

@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from services.evals.corpus import APP, lines, sha, stored
 from services.evidence import FileRange, SnapshotReader
 from services.ingest.limits import MIB, Limits
 from services.ingest.pin import pin_local
@@ -25,7 +26,6 @@ from services.verifier import (
 from services.verifier import verify as verify_module
 from services.verifier.models import CheckResult, Verdict
 from services.verifier.tokens import content_tokens, overlap
-from tests.verifier_corpus import APP, lines, sha, stored
 
 LIMITS = Limits(max_bytes=10 * MIB, max_files=1000, max_depth=30)
 SECRET = "AKIA" + "IOSFODNN7EXAMPLE"

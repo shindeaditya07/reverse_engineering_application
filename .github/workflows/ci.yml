@@ -131,3 +131,13 @@ jobs:
         run: find fixtures/legacy-app -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Key matches the fixture (drift check)
         run: make answer-key
+
+  eval-smoke:
+    name: Eval Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Smoke eval (no model; fails if a seeded bad claim is missed)
+        run: make eval-smoke
