@@ -1,7 +1,7 @@
 # Build plan
 
 Version 1.0 · 2026-11-04 · draft for review · Phase 1, step 7
-Spec: `spec.md` v1.1 · Rules: `rules.md` v1.1 · Agent rules: `AGENTS.md` v1.0. Branch-by-branch detail: `branching-and-environments.md`.
+Spec: `spec.md` v1.1 · Rules: `rules.md` v1.2 · Agent rules: `AGENTS.md` v1.0. Branch-by-branch detail: `branching-and-environments.md`.
 
 **Staging rule (identical in both documents):** merging into `develop` deploys `staging`. `main` is release only and deploys nothing. There is exactly one deployed environment, `staging`, holding fixture data only.
 

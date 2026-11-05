@@ -37,6 +37,11 @@ def max_retries() -> int:
     return int(rule_constants("OPS-1.1")["max_job_retries"])
 
 
+def lease_seconds() -> int:
+    """OPS-1.2: pass this to `run_one` and `sweep` so both use the same limit."""
+    return int(rule_constants("OPS-1.2")["job_lease_seconds"])
+
+
 async def enqueue(
     session: AsyncSession, run_id: uuid.UUID, job_type: str, input_hash: str
 ) -> tuple[uuid.UUID, bool]:
@@ -116,9 +121,7 @@ async def sweep(
     session: AsyncSession, lease_seconds: float, now: dt.datetime | None = None
 ) -> dict[str, int]:
     """Recover jobs whose worker died: a running job past its lease counts as a failed attempt.
-    Returns how many were requeued and how many were failed for good.
-
-    The lease length is the caller's to give: no rule fixes it yet (see docs/jobs.md)."""
+    Returns how many were requeued and how many were failed for good (OPS-1.2 sets the lease)."""
     now = now or dt.datetime.now(dt.UTC)
     cutoff = now - dt.timedelta(seconds=lease_seconds)
     stale = (
@@ -150,6 +153,7 @@ __all__ = [
     "complete",
     "enqueue",
     "fail",
+    "lease_seconds",
     "max_retries",
     "sweep",
 ]

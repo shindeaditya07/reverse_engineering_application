@@ -15,7 +15,7 @@
 
 **Stored errors.** `last_error` is the error class name only. Messages can carry source values (SEC-1.3).
 
-**Constants.** `max_job_retries` comes from `rules_constants.yaml` (`OPS-1.1`, still marked proposed). **No rule fixes the lease length**, and `rules.md` and the constants file are locked, so the runner takes `lease_seconds` as an argument with no default. Whoever starts a worker must pass it, and the sweeper must get the same value. Proposed rule: *OPS-1.2, a running job not finished within 600 seconds is presumed dead and swept*; that needs your approval to add to `rules.md` (and `make policy-lock`).
+**Constants.** `max_job_retries` (OPS-1.1) and `job_lease_seconds` (OPS-1.2, 600, approved 2026-11-05) come from `rules_constants.yaml`. `lease_seconds()` reads the second. The runner and sweeper still take it as an argument with no default, so a worker must pass the same value to both.
 
 **Not built here.** The API does not start a worker or call the sweeper: no agent exists to run yet. The first agent PR wires `sweep_on_startup` into a worker entry point. A healthy handler that runs longer than the lease is stopped by `asyncio.wait_for` and counted as a failed attempt, so size the lease to the slowest legitimate job.
 
