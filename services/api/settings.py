@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     git_sha: str = "unknown"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/platform"
+    snapshot_dir: str = ".snapshots"
+    github_token: SecretStr | None = None
 
 
 @lru_cache
