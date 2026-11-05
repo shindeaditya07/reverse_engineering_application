@@ -250,6 +250,11 @@ class Job(Base):
     run_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
     job_type: Mapped[str] = mapped_column(String(40))
     input_hash: Mapped[str] = mapped_column(String(64))
+    # The snapshot a pipeline step reads. Part of the input, not of the identity: the input
+    # hash already pins it.
+    snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("snapshots.id"), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(String(10), server_default=text("'queued'"))
     attempts: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)

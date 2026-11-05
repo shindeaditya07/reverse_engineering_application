@@ -31,6 +31,7 @@ class Claimed:
     input_hash: str
     attempts: int
     worker_id: str
+    snapshot_id: uuid.UUID | None = None
 
 
 def max_retries() -> int:
@@ -43,12 +44,16 @@ def lease_seconds() -> int:
 
 
 async def enqueue(
-    session: AsyncSession, run_id: uuid.UUID, job_type: str, input_hash: str
+    session: AsyncSession,
+    run_id: uuid.UUID,
+    job_type: str,
+    input_hash: str,
+    snapshot_id: uuid.UUID | None = None,
 ) -> tuple[uuid.UUID, bool]:
     """(job id, created). `created` is False when the identity already exists in any state."""
     stmt = (
         insert(Job)
-        .values(run_id=run_id, job_type=job_type, input_hash=input_hash)
+        .values(run_id=run_id, job_type=job_type, input_hash=input_hash, snapshot_id=snapshot_id)
         .on_conflict_do_nothing(constraint="uq_job_identity")
         .returning(Job.id)
     )
@@ -80,7 +85,9 @@ async def claim_next(
     job.locked_at = dt.datetime.now(dt.UTC)
     job.locked_by = worker_id
     await session.flush()
-    return Claimed(job.id, job.run_id, job.job_type, job.input_hash, job.attempts, worker_id)
+    return Claimed(
+        job.id, job.run_id, job.job_type, job.input_hash, job.attempts, worker_id, job.snapshot_id
+    )
 
 
 async def complete(session: AsyncSession, job_id: uuid.UUID, worker_id: str) -> bool:
