@@ -13,6 +13,7 @@ Schema for spec section 10. Models: `services/db/models.py`. Migration: `migrati
 | EVD-1.1 Confirmed or Inferred needs evidence | deferred constraint trigger, checked at commit |
 | EVD-1.4 span at most 40 lines | CHECK `file_range_valid`; the literal 40 is tested against `rules_constants.yaml` |
 | jobs idempotent | unique (`run_id`, `job_type`, `input_hash`) |
+| claim written once per run | unique (`run_id`, `key`), migration 0004; see `docs/claims.md` |
 | running job holds a lease | CHECK `running_has_lease` (migration 0003); see `docs/jobs.md` |
 | `model_calls` hold no text | only hashes and counts, by column design |
 

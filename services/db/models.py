@@ -80,10 +80,14 @@ class Claim(Base):
     """Identity of a claim. Its text and status live in append-only claim_versions."""
 
     __tablename__ = "claims"
+    __table_args__ = (UniqueConstraint("run_id", "key", name="uq_claim_run_key"),)
 
     id: Mapped[uuid.UUID] = _id()
     snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("snapshots.id"), index=True)
     run_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
+    # The producer's stable id for the claim. With run_id it makes a write idempotent: a run
+    # killed halfway and resumed meets the same key and adds nothing (AGENTS.md section 4).
+    key: Mapped[str] = mapped_column(Text)
     kind: Mapped[str] = mapped_column(String(40))
     created_at: Mapped[dt.datetime] = _created()
 

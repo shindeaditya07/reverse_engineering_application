@@ -54,7 +54,7 @@ async def test_round_trip(session: AsyncSession, tmp_path: Path, ref: EvidenceRe
     pinned = pin_local(ROOT / "fixtures/legacy-app", tmp_path / "store", LIMITS)
     reader = SnapshotReader.from_pinned(pinned)
     snapshot, _ = await store_snapshot(session, pinned)
-    claim = Claim(snapshot_id=snapshot.id, run_id=uuid.uuid4(), kind="behavior")
+    claim = Claim(snapshot_id=snapshot.id, run_id=uuid.uuid4(), key="k1", kind="behavior")
     session.add(claim)
     await session.flush()
     version = ClaimVersion(
@@ -89,7 +89,7 @@ async def test_verifier_result_rows_fit_the_table(session: AsyncSession, tmp_pat
     pinned = pin_local(ROOT / "fixtures/legacy-app", tmp_path / "store", LIMITS)
     reader = SnapshotReader.from_pinned(pinned)
     snapshot, _ = await store_snapshot(session, pinned)
-    claim = Claim(snapshot_id=snapshot.id, run_id=uuid.uuid4(), kind="behavior")
+    claim = Claim(snapshot_id=snapshot.id, run_id=uuid.uuid4(), key="k1", kind="behavior")
     session.add(claim)
     await session.flush()
     version = ClaimVersion(
