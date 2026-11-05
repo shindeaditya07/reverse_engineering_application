@@ -63,3 +63,14 @@ jobs:
       - name: Wait until staging reports this commit
         if: ${{ vars.STAGING_API_URL != '' }}
         run: python3 scripts/wait_for_version.py --base-url "${{ vars.STAGING_API_URL }}" --expected "${{ github.sha }}" --timeout 900 --interval 15
+
+  smoke-eval:
+    name: Smoke Eval
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Smoke eval on the deployed commit (no model; a failure fails this workflow)
+        run: make eval-smoke

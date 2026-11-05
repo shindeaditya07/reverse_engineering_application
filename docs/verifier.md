@@ -64,7 +64,7 @@ penalises a true explanation written in other words. Both are known limits, repo
 
 ## Measured quality (VER-1.4)
 
-`make verifier-report` runs both corpora in `tests/verifier_corpus.py`:
+`make eval-smoke` runs both corpora in `services/evals/corpus.py` and prints these rates:
 
 - **Good corpus, 50 claims:** the 42 facts of the reviewed fixture answer key plus 8
   hand-written ones, all with real references and stored hashes. A Confirmed fact is a

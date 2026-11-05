@@ -4,12 +4,12 @@ from collections import Counter
 
 import pytest
 
+from services.evals.corpus import APP, bad_claims, good_claims, sentences
 from services.evidence import SnapshotReader
 from services.ingest.limits import MIB, Limits
 from services.ingest.pin import pin_local
 from services.rules_constants import rule_constants
 from services.verifier import verify_claim, verify_claims, verify_document
-from tests.verifier_corpus import APP, bad_claims, good_claims, sentences
 
 
 @pytest.fixture(scope="module")

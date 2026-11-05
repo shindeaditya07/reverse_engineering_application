@@ -83,8 +83,8 @@ async def test_round_trip(session: AsyncSession, tmp_path: Path, ref: EvidenceRe
 
 async def test_verifier_result_rows_fit_the_table(session: AsyncSession, tmp_path: Path) -> None:
     from services.db.models import VerificationResult
+    from services.evals.corpus import lines, stored
     from services.verifier import ClaimInput, result_rows, verify_claim
-    from tests.verifier_corpus import lines, stored
 
     pinned = pin_local(ROOT / "fixtures/legacy-app", tmp_path / "store", LIMITS)
     reader = SnapshotReader.from_pinned(pinned)
