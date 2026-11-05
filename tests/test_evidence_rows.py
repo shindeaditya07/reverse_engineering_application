@@ -79,3 +79,35 @@ async def test_round_trip(session: AsyncSession, tmp_path: Path, ref: EvidenceRe
     again = check_hash(rebuilt, stored.content_hash, reader)
     assert again.status == "resolved"
     assert again.content_hash == found.content_hash
+
+
+async def test_verifier_result_rows_fit_the_table(session: AsyncSession, tmp_path: Path) -> None:
+    from services.db.models import VerificationResult
+    from services.verifier import ClaimInput, result_rows, verify_claim
+    from tests.verifier_corpus import lines, stored
+
+    pinned = pin_local(ROOT / "fixtures/legacy-app", tmp_path / "store", LIMITS)
+    reader = SnapshotReader.from_pinned(pinned)
+    snapshot, _ = await store_snapshot(session, pinned)
+    claim = Claim(snapshot_id=snapshot.id, run_id=uuid.uuid4(), kind="behavior")
+    session.add(claim)
+    await session.flush()
+    version = ClaimVersion(
+        claim_id=claim.id,
+        version=1,
+        text="t",
+        status="unknown",
+        producer="t",
+        producer_kind="model",
+    )
+    session.add(version)
+    await session.flush()
+
+    verdict = verify_claim(
+        ClaimInput("C", "t", "maybe", "model", (stored(reader, lines("app.js", 1, 1)),)), reader
+    )
+    session.add_all(VerificationResult(**row) for row in result_rows(verdict, version.id))
+    await session.flush()
+    stored_rows = (await session.execute(select(VerificationResult))).scalars().all()
+    assert {r.check_id for r in stored_rows if not r.passed} == {"V-5"}
+    assert len(stored_rows) == 9

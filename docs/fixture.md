@@ -2,7 +2,7 @@
 
 Spec section 17 and build-plan step 9. The fixture is a small synthetic Node/Express order service (`fixtures/legacy-app/`, CommonJS only for v1) built to hold 35 traps, plus a hand-reviewed answer key (`fixtures/answer-key/key.yaml`) that lists the true facts for each trap. Analyzers are scored against the key before any model is involved.
 
-**Status of the key: DRAFT, `needs_review`.** Claude drafted it, so it only becomes a measuring stick after Aditya reviews it line by line (spec section 17, build-plan risk row). Until then every score against it is provisional.
+**Status of the key: reviewed.** Claude drafted it; on 2026-11-05 Aditya said in the project thread that he is okay with all 42 facts, and every fact now carries `review: reviewed` with `reviewed_by` and `reviewed_on`. If a later look finds a wrong fact, set it back to `needs_review` and the drift check will say so.
 
 ## What is checked automatically
 `make answer-key` (CI job `Fixture Answer Key`) runs `scripts/check_answer_key.py`. It checks that the key is well formed and still points at the right place in the fixture, so neither can drift on its own:

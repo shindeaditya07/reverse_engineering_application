@@ -42,10 +42,19 @@ def test_limit_comes_from_the_constants_file() -> None:
     assert MAX_LINES == 40
 
 
-def test_key_is_a_draft_until_a_human_reviews_it(key: dict[str, Any]) -> None:
+def test_key_records_aditya_s_review_on_every_fact(key: dict[str, Any]) -> None:
     facts = [f for t in key["traps"] for f in t["facts"]]
-    assert key["review"] == "needs_review"
-    assert {f["review"] for f in facts} == {"needs_review"}
+    assert key["review"] == "reviewed"
+    assert {f["review"] for f in facts} == {"reviewed"}
+    assert {f["reviewed_by"] for f in facts} == {"shindeaditya07"}
+    assert {f["reviewed_on"] for f in facts} == {"2026-11-05"}
+    assert "NOT fully reviewed" not in ck.summarise(key)
+
+
+def test_one_fact_back_to_needs_review_makes_the_key_provisional(key: dict[str, Any]) -> None:
+    fact(key, "T01-F1")["review"] = "needs_review"
+    key["review"] = "needs_review"
+    assert problems(key) == []
     assert "NOT fully reviewed" in ck.summarise(key)
 
 
@@ -129,7 +138,7 @@ def test_unknown_may_have_no_evidence(key: dict[str, Any]) -> None:
 
 
 def test_reviewed_needs_a_reviewer_and_date(key: dict[str, Any]) -> None:
-    fact(key, "T01-F1")["review"] = "reviewed"
+    del fact(key, "T01-F1")["reviewed_by"]
     assert any("reviewed needs reviewed_by and reviewed_on" in p for p in problems(key))
 
 
@@ -140,6 +149,7 @@ def test_reviewed_fact_with_reviewer_is_accepted(key: dict[str, Any]) -> None:
 
 
 def test_top_level_cannot_claim_review_early(key: dict[str, Any]) -> None:
+    fact(key, "T01-F1")["review"] = "needs_review"
     key["review"] = "reviewed"
     assert any("some facts are still needs_review" in p for p in problems(key))
 

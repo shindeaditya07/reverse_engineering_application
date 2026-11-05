@@ -1,4 +1,4 @@
-.PHONY: install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
+.PHONY: verifier-report install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
 
 install:
 	uv sync
@@ -15,7 +15,12 @@ lint:
 	uv run mypy
 
 test:
-	uv run pytest --cov=services --cov-report=term-missing
+	uv run pytest --cov=services --cov-branch --cov-report=term-missing --cov-report=json
+	uv run python -I scripts/check_verifier_coverage.py
+
+# Catch rate on the seeded bad corpus and false-block rate on the good one, with intervals.
+verifier-report:
+	uv run python scripts/verifier_report.py
 
 audit:
 	uv run pip-audit
