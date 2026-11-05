@@ -1,6 +1,7 @@
 """GitHub source: URL and ref validation, token handling, and a real fetch from a local repo."""
 
 import base64
+import stat
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -270,3 +271,29 @@ def test_repository_hooks_and_filters_do_not_run(tmp_path: Path) -> None:
     pinned = pin_from(repo, tmp_path / "store")
     assert not marker.exists()
     assert "a.js" in [f.path for f in pinned.tree.files]
+
+
+def test_cleanup_never_changes_permissions_through_a_symlink(tmp_path: Path) -> None:
+    victim = tmp_path / "victim.txt"
+    victim.write_text("outside the source")
+    victim.chmod(0o600)
+    repo, _ = make_repo(tmp_path / "origin", {"ok.js": b"x"})
+    (repo / "evil").symlink_to(victim)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "evil")
+    with pytest.raises(IngestError):
+        pin_from(repo, tmp_path / "store")
+    assert stat.S_IMODE(victim.stat().st_mode) == 0o600
+
+
+def test_symlinks_inside_a_repository_are_skipped_and_do_not_break_pinning(tmp_path: Path) -> None:
+    repo, _ = make_repo(tmp_path / "origin", {"real.js": b"x"})
+    (repo / "alias.js").symlink_to("real.js")
+    (repo / "dangling").symlink_to("missing")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "links")
+    pinned = pin_from(repo, tmp_path / "store")
+    assert [f.path for f in pinned.tree.files] == ["real.js"]
+    assert {s.path for s in pinned.tree.skipped} == {"alias.js", "dangling"}
+    assert stat.S_IMODE((pinned.root / "real.js").stat().st_mode) == 0o444
+    assert verify(pinned, LIMITS).pinned_copy_intact is True

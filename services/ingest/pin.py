@@ -49,18 +49,23 @@ def _copy_file(source: str, dest: Path, shown: str) -> None:
         shutil.copyfileobj(reader, writer, _CHUNK)
 
 
-def _make_read_only(root: Path) -> None:
-    for directory, _, names in os.walk(root, topdown=False):
+def _chmod_tree(root: Path, file_mode: int, dir_mode: int) -> None:
+    """chmod every real file and directory under root. A symlink is never touched: chmod would
+    follow it, and in a hostile repository its target can be anywhere (SEC-1.1)."""
+    for directory, _, names in os.walk(root):
         for name in names:
-            Path(directory, name).chmod(_FILE_MODE)
-        Path(directory).chmod(_DIR_MODE)
+            path = Path(directory, name)
+            if not path.is_symlink():
+                path.chmod(file_mode)
+        Path(directory).chmod(dir_mode)
+
+
+def _make_read_only(root: Path) -> None:
+    _chmod_tree(root, _FILE_MODE, _DIR_MODE)
 
 
 def _make_writable(root: Path) -> None:
-    for directory, _, names in os.walk(root):
-        Path(directory).chmod(0o755)
-        for name in names:
-            Path(directory, name).chmod(0o644)
+    _chmod_tree(root, 0o644, 0o755)
 
 
 def _place(tmp: Path, store: Path, revision: str, tree: TreeScan, limits: Limits) -> Path:
