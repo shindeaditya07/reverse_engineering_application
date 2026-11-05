@@ -1,4 +1,4 @@
-.PHONY: install up down lint test audit build secrets policy-check policy-lock migrate seed eval eval-smoke generate-types
+.PHONY: install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
 
 install:
 	uv sync
@@ -32,6 +32,10 @@ policy-check:
 # After a reviewed change to docs/rules.md (version bumped) or rules_constants.yaml.
 policy-lock:
 	uv run python -I scripts/policy_check.py --write-lock
+
+# Drift check: the fixture answer key still matches the fixture app. Passing does not mean reviewed.
+answer-key:
+	uv run python -I scripts/check_answer_key.py
 
 # Apply migrations to DATABASE_URL (never run at API startup).
 migrate:

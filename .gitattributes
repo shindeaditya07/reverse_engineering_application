@@ -1,2 +1,4 @@
 * text=auto eol=lf
 *.png binary
+fixtures/legacy-app/lib/totals.js -text
+fixtures/legacy-app/lib/legacy_labels.js -text

@@ -1,0 +1,16 @@
+{
+  "name": "corner-shop-orders",
+  "version": "1.4.2",
+  "description": "Order service for a small shop.",
+  "main": "app.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mysql": "^2.18.1"
+  }
+}
