@@ -7,6 +7,9 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "pydantic-settings>=2.6",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.32.0",
+    "alembic>=1.20.1",
 ]
 
 [dependency-groups]
@@ -21,6 +24,7 @@ dev = [
     "pre-commit>=4.0",
     "pyyaml>=6.0.3",
     "types-pyyaml>=6.0.12.20261103",
+    "pytest-asyncio>=1.4.1.post1",
 ]
 
 [tool.ruff]
@@ -30,6 +34,10 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ERA", "DTZ"]
 
+[tool.ruff.lint.per-file-ignores]
+"migrations/**" = ["E501"]
+"tests/**" = ["E501"]
+
 [tool.mypy]
 strict = true
 python_version = "3.12"
@@ -38,3 +46,6 @@ files = ["services", "tests", "scripts"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["requires_db: needs the Postgres from DATABASE_URL (REQUIRE_DB=1 makes absence a failure)"]

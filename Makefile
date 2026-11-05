@@ -33,6 +33,10 @@ policy-check:
 policy-lock:
 	uv run python -I scripts/policy_check.py --write-lock
 
+# Apply migrations to DATABASE_URL (never run at API startup).
+migrate:
+	uv run alembic upgrade head
+
 # Not built yet. These fail on purpose instead of passing as stubs.
-migrate seed eval eval-smoke generate-types:
+seed eval eval-smoke generate-types:
 	@echo "make $@ is not built yet (see docs/build-plan.md)"; exit 1
