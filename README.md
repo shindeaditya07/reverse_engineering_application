@@ -16,8 +16,9 @@ Eval results (committed under [evals/results/](evals/results/); how to read them
 | Run | What | Recall vs the key | Precision (floor) | Date |
 |---|---|---|---|---|
 | [baseline-grep](evals/results/2026-11-05-baseline-grep/report.md) | Grep and regex baseline, no model. Recall on the 4 kinds it targets: 89% (8/9). | 20% (8/41, 95% interval 10% to 34%) | 27% (8/30) | 2026-11-05 |
+| [discovery-v1](evals/results/2026-11-05-discovery-v1/report.md) | Discovery agent, no model. Scored only on the 5 kinds it targets (11 facts, not 41); patterns written after the fixture was read, so optimistic. | 82% (9/11, 95% interval 52% to 95%) | 100% (9/9) | 2026-11-05 |
 
-No analyzer has been scored yet. The smoke eval (`make eval-smoke`) is a self-check of the harness, not a result.
+The smoke eval (`make eval-smoke`) is a self-check of the harness, not a result.
 
 ## Run locally
 
