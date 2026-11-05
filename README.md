@@ -11,7 +11,13 @@ A multi-agent platform that reverse-engineers an undocumented legacy Node/Expres
 - Build plan: [docs/build-plan.md](docs/build-plan.md)
 - Branches and environments: [docs/branching-and-environments.md](docs/branching-and-environments.md)
 
-Eval results: none yet. The smoke eval is a self-check of the harness, not a result; real runs are committed under `evals/results/` ([docs/evals.md](docs/evals.md)).
+Eval results (committed under [evals/results/](evals/results/); how to read them: [docs/evals.md](docs/evals.md)):
+
+| Run | What | Recall vs the key | Precision (floor) | Date |
+|---|---|---|---|---|
+| [baseline-grep](evals/results/2026-11-05-baseline-grep/report.md) | Grep and regex baseline, no model. Recall on the 4 kinds it targets: 89% (8/9). | 20% (8/41, 95% interval 10% to 34%) | 27% (8/30) | 2026-11-05 |
+
+No analyzer has been scored yet. The smoke eval (`make eval-smoke`) is a self-check of the harness, not a result.
 
 ## Run locally
 
