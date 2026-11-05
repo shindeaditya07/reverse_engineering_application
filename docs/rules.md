@@ -1,6 +1,6 @@
 # Evidence and output rules
 
-Version 1.1 · 2026-11-04 · draft for review · merges amendments A1 to A14 (A3 still open) · source: `business-case.md` v0.1
+Version 1.2 · 2026-11-05 · draft for review · merges amendments A1 to A14 (A3 still open) · adds OPS-1.2 · source: `business-case.md` v0.1
 
 These are the rules about how **this platform** may make statements about someone else's legacy application. They are not the legacy app's business rules; those are *outputs* (the business rules catalog). Every rule has a stable ID. Code, tests, labels and PRs cite IDs, never prose. Numbers appear here and are copied into `rules_constants.yaml` keyed by the same ID; a CI check later verifies each value appears in its cited passage.
 
@@ -83,6 +83,7 @@ Rule strength: **MUST / MUST NOT** are enforced by a test, lint or CI job. **SHO
 ## 8. Operations (OPS)
 
 - **OPS-1.1** A job MUST retry at most 3 times, then enter a visible failed state. A model call MUST time out after 120 seconds.
+- **OPS-1.2** A job that is still running 600 seconds after it was claimed MUST be presumed dead and swept: it counts as a failed attempt under OPS-1.1. A running job MUST be stopped at the same limit, so the sweeper never requeues work that is still running. [enforced by: job runner tests]
 
 ## 9. Notes for the development team
 

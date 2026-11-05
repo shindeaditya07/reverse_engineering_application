@@ -17,6 +17,7 @@ from services.jobs import (
     complete,
     enqueue,
     fail,
+    lease_seconds,
     max_retries,
     run_one,
     run_until_idle,
@@ -29,7 +30,7 @@ from tests.test_db_schema import expect_error
 pytestmark = pytest.mark.requires_db
 
 RUN = uuid.UUID("11111111-1111-1111-1111-111111111111")
-LEASE = 600  # a test value: the real lease is not fixed by any rule yet
+LEASE = 600  # test value; test_the_lease_matches_the_rule ties it to OPS-1.2
 
 
 @pytest_asyncio.fixture
@@ -61,6 +62,10 @@ async def always_ok(job: Claimed) -> None:
 
 def test_the_retry_limit_comes_from_the_constants_file() -> None:
     assert max_retries() == rule_constants("OPS-1.1")["max_job_retries"]
+
+
+def test_the_lease_matches_the_rule() -> None:
+    assert lease_seconds() == rule_constants("OPS-1.2")["job_lease_seconds"] == LEASE
 
 
 async def test_enqueue_is_idempotent_per_run_type_and_input(

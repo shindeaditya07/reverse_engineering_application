@@ -6,6 +6,7 @@ from services.jobs.queue import (
     complete,
     enqueue,
     fail,
+    lease_seconds,
     max_retries,
     sweep,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "complete",
     "enqueue",
     "fail",
+    "lease_seconds",
     "max_retries",
     "run_one",
     "run_until_idle",
