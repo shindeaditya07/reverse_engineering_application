@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Jane Example",
+    "email": "jane.example@example.com",
+    "phone": "555-0100",
+    "address": "100 Placeholder Street, Sampletown",
+    "loyalty_tier": "gold"
+  },
+  {
+    "name": "Sam Sample",
+    "email": "sam.sample@example.com",
+    "phone": "555-0101",
+    "address": "200 Placeholder Street, Sampletown",
+    "loyalty_tier": "none"
+  }
+]

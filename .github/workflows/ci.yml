@@ -119,3 +119,15 @@ jobs:
         run: uv run alembic downgrade base
       - name: Upgrade again
         run: uv run alembic upgrade head
+
+  fixture-answer-key:
+    name: Fixture Answer Key
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Fixture app still parses
+        run: find fixtures/legacy-app -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Key matches the fixture (drift check)
+        run: make answer-key
