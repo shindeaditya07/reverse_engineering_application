@@ -22,6 +22,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -234,6 +235,11 @@ class Job(Base):
         UniqueConstraint("run_id", "job_type", "input_hash", name="uq_job_identity"),
         CheckConstraint("status IN ('queued', 'running', 'succeeded', 'failed')", name="status"),
         CheckConstraint("attempts >= 0", name="attempts_non_negative"),
+        CheckConstraint(
+            "status <> 'running' OR (locked_at IS NOT NULL AND locked_by IS NOT NULL)",
+            name="running_has_lease",
+        ),
+        Index("ix_jobs_claim", "status", "created_at"),
     )
 
     id: Mapped[uuid.UUID] = _id()
@@ -243,6 +249,8 @@ class Job(Base):
     status: Mapped[str] = mapped_column(String(10), server_default=text("'queued'"))
     attempts: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    locked_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    locked_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[dt.datetime] = _created()
     updated_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
