@@ -158,6 +158,63 @@ async def test_invalid_line_ranges_are_rejected(
             await add_evidence(connection, snapshot, version, start, end)
 
 
+async def insert_byte_evidence(
+    conn: AsyncConnection,
+    snapshot: uuid.UUID,
+    version: uuid.UUID,
+    columns: str,
+    values: str,
+) -> None:
+    await conn.execute(
+        text(
+            f"INSERT INTO evidence (claim_version_id, snapshot_id, kind, path, content_hash, {columns}) "
+            f"VALUES (:v, :s, 'file_range', 'lib/x.js', 'h', {values})"
+        ),
+        {"v": version, "s": snapshot},
+    )
+
+
+async def test_byte_range_evidence_is_accepted(connection: AsyncConnection) -> None:
+    """EVD-1.5: an undecodable file is cited by byte range."""
+    snapshot, claim = await make_claim(connection)
+    version = await add_version(connection, claim, 1, "unknown", "model")
+    await insert_byte_evidence(connection, snapshot, version, "start_byte, end_byte", "73, 74")
+
+
+@pytest.mark.parametrize(
+    ("columns", "values"),
+    [
+        ("start_byte, end_byte", "5, 5"),
+        ("start_byte, end_byte", "-1, 4"),
+        ("start_byte", "5"),
+        ("start_line, end_line, start_byte, end_byte", "1, 2, 3, 4"),
+        ("start_byte, end_byte, start_line", "3, 4, 1"),
+        ("start_line", "3"),
+        ("end_byte", "3"),
+        ("start_line, end_line", "NULL, NULL"),
+    ],
+    ids=[
+        "empty",
+        "negative",
+        "no_end",
+        "lines_and_bytes",
+        "bytes_and_one_line",
+        "half_a_line_range",
+        "end_byte_only",
+        "no_range_at_all",
+    ],
+)
+async def test_invalid_byte_ranges_are_rejected(
+    connection: AsyncConnection, columns: str, values: str
+) -> None:
+    snapshot, claim = await make_claim(connection)
+    version = await add_version(connection, claim, 1, "unknown", "model")
+    with pytest.raises(DBAPIError) as caught:
+        async with connection.begin_nested():
+            await insert_byte_evidence(connection, snapshot, version, columns, values)
+    assert "file_range_valid" in str(caught.value)
+
+
 async def test_claim_versions_are_append_only(connection: AsyncConnection) -> None:
     _, claim = await make_claim(connection)
     version = await add_version(connection, claim, 1, "unknown", "model")

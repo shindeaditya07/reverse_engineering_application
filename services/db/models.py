@@ -121,10 +121,17 @@ class Evidence(Base):
             "'log_line', 'ticket')",
             name="kind",
         ),
-        # EVD-1.2 and EVD-1.4: a file range has a path and lines, from 1, at most 40 lines.
+        # EVD-1.2, EVD-1.4, EVD-1.5: a file range has a path and either lines (from 1, at most
+        # 40) or, for a file that cannot be decoded, a byte range. Never both. Every branch tests
+        # IS NOT NULL: a CHECK that evaluates to NULL passes, which would let half a range in.
         CheckConstraint(
-            "kind <> 'file_range' OR (path IS NOT NULL AND start_line >= 1 "
-            "AND end_line >= start_line AND end_line - start_line + 1 <= 40)",
+            "kind <> 'file_range' OR (path IS NOT NULL AND ("
+            "(start_line IS NOT NULL AND end_line IS NOT NULL AND start_line >= 1 "
+            "AND end_line >= start_line AND end_line - start_line + 1 <= 40 "
+            "AND start_byte IS NULL AND end_byte IS NULL) OR "
+            "(start_byte IS NOT NULL AND end_byte IS NOT NULL AND start_byte >= 0 "
+            "AND end_byte > start_byte "
+            "AND start_line IS NULL AND end_line IS NULL)))",
             name="file_range_valid",
         ),
         CheckConstraint(
@@ -140,6 +147,8 @@ class Evidence(Base):
     path: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_line: Mapped[int | None] = mapped_column(Integer, nullable=True)
     end_line: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    start_byte: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    end_byte: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     object_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     content_hash: Mapped[str] = mapped_column(String(64))
 
