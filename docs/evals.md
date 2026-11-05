@@ -44,7 +44,7 @@ a number in `rules.md`, so it is a constant in `runner.py`, not in `rules_consta
 ## Results folder
 
 Real runs go to `evals/results/YYYY-MM-DD-<run-id>/` and are committed with the model and
-prompt hashes (`manifest.json` also records the commit and the answer-key hash). A run ID is
+prompt hashes (`manifest.json` also records the commit, whether the working tree was dirty outside `evals/results`, and the answer-key hash). A run ID is
 used once; reusing it is an error. The smoke eval prints to the terminal and writes a folder
 only when you pass `--out`; do not commit those. The README eval table stays empty until a
 real run exists.
@@ -54,5 +54,4 @@ real run exists.
 - **Coverage (REV-3.1), accuracy (REV-3.2 to 3.4), reviewer minutes and model cost** need the
   database, the review CLI and a model. They come with those components.
 - **Characterization-test counts (TST-1.5)** come with the sandbox.
-- **The grep baseline** (build-plan step 10) is its own PR. Agents must beat it.
 - **Corpora grow to 150 each before v1** (spec section 19); they are 50 and 50 now.

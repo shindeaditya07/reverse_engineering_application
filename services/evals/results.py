@@ -56,14 +56,24 @@ def render_report(
     return "\n".join(out)
 
 
-def _git_sha() -> str:
+def _git(*args: str) -> str | None:
     try:
         done = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True, timeout=10
+            ["git", *args], capture_output=True, text=True, check=True, timeout=10
         )
     except (OSError, subprocess.SubprocessError):
-        return "unknown"
+        return None
     return done.stdout.strip()
+
+
+def _git_sha() -> str:
+    return _git("rev-parse", "HEAD") or "unknown"
+
+
+def _worktree_dirty() -> bool | None:
+    """True if tracked or new files outside evals/results differ from the commit."""
+    changed = _git("status", "--porcelain", "--", ".", ":(exclude)evals/results")
+    return None if changed is None else bool(changed)
 
 
 def write_results(
@@ -79,6 +89,6 @@ def write_results(
     folder = root / f"{(today or dt.datetime.now(dt.UTC).date()).isoformat()}-{run_id}"
     folder.mkdir(parents=True)  # FileExistsError if the run id was already used
     (folder / "report.md").write_text(report, encoding="utf-8")
-    full = {"commit": _git_sha(), **manifest}
+    full = {"commit": _git_sha(), "worktree_dirty": _worktree_dirty(), **manifest}
     (folder / "manifest.json").write_text(json.dumps(full, indent=2, sort_keys=True), "utf-8")
     return folder

@@ -219,7 +219,8 @@ def test_git_sha_falls_back_when_git_is_missing(
 
     monkeypatch.setattr("services.evals.results.subprocess.run", no_git)
     folder = write_results("nogit", "x", {}, tmp_path)
-    assert json.loads((folder / "manifest.json").read_text())["commit"] == "unknown"
+    manifest = json.loads((folder / "manifest.json").read_text())
+    assert manifest["commit"] == "unknown" and manifest["worktree_dirty"] is None
 
 
 def test_report_shows_intervals_failures_and_gaps() -> None:
