@@ -191,16 +191,14 @@ def _crlf(reader: SnapshotReader, path: str) -> Finding | None:
     if b"\r\n" not in reader.raw(path):
         return None
     raw_lines = reader.raw(path).decode("utf-8-sig").split("\n")
-    marked = [n for n, line in enumerate(raw_lines, 1) if line.endswith("\r")]
-    if not marked:
-        return None
-    last = min(marked[0] + max_excerpt_lines() - 1, len(reader.lines(path)))
+    first = next(n for n, line in enumerate(raw_lines, 1) if line.endswith("\r"))  # exists: CRLF
+    last = min(first + max_excerpt_lines() - 1, len(reader.lines(path)))
     return Finding(
         f"disc:crlf:{path}",
         "encoding",
         "confirmed",
         f"{path} uses CRLF line endings; line numbers here count after LF normalisation.",
-        ((path, marked[0], last),),
+        ((path, first, last),),
     )
 
 
@@ -220,12 +218,10 @@ def discover(reader: SnapshotReader, paths: list[str]) -> Discovery:
         crlf = _crlf(reader, path)
         if crlf:
             findings.append(crlf)
+    skipped = {path for path, _ in unscanned}
     for path in inventory.first_party_sources:
-        try:
+        if path not in skipped:
             findings += _scan_lines(path, reader.lines(path), declared, block)
-        except Unresolved as error:
-            if error.reason != "undecodable":
-                raise
     return Discovery(inventory, tuple(findings), tuple(unscanned))
 
 
