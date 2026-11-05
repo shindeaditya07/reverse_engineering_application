@@ -30,6 +30,10 @@ class SnapshotReader:
     def from_pinned(cls, pinned: PinnedSource) -> "SnapshotReader":
         return cls(pinned.root, {f.path: f.sha256 for f in pinned.tree.files})
 
+    def paths(self) -> list[str]:
+        """Every file of the snapshot, sorted. Only these can be read."""
+        return sorted(self._hashes)
+
     def raw(self, path: str) -> bytes:
         if path in self._raw:
             return self._raw[path]

@@ -312,7 +312,7 @@ async def test_discovery_findings_are_stored_verified_and_idempotent(
     session: AsyncSession, world: Any
 ) -> None:
     snapshot, reader, run = world
-    found = discover(reader, [p for p in reader._hashes])  # noqa: SLF001
+    found = discover(reader, reader.paths())
     first = await store_discovery(session, snapshot.id, run, found, reader)
     assert len(first) == len(found.findings) and all(r.created for r in first)
     assert await count(session, Claim, Claim.run_id == run) == len(found.findings)
