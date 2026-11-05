@@ -47,8 +47,11 @@ async def make_claim(conn: AsyncConnection) -> tuple[uuid.UUID, uuid.UUID]:
         {"s": snapshot, "r": f"https://example.test/{snapshot}"},
     )
     await conn.execute(
-        text("INSERT INTO claims (id, snapshot_id, run_id, kind) VALUES (:c, :s, :r, 'route')"),
-        {"c": claim, "s": snapshot, "r": uuid.uuid4()},
+        text(
+            "INSERT INTO claims (id, snapshot_id, run_id, key, kind) "
+            "VALUES (:c, :s, :r, :k, 'route')"
+        ),
+        {"c": claim, "s": snapshot, "r": uuid.uuid4(), "k": str(claim)},
     )
     return snapshot, claim
 
