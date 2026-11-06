@@ -9,6 +9,7 @@ A multi-agent platform that reverse-engineers an undocumented legacy Node/Expres
 - Rules (IDs cited by code and tests): [docs/rules.md](docs/rules.md), numbers in [rules_constants.yaml](rules_constants.yaml)
 - Spec: [docs/spec.md](docs/spec.md)
 - Build plan: [docs/build-plan.md](docs/build-plan.md)
+- Review CLI: [docs/review.md](docs/review.md)
 - Branches and environments: [docs/branching-and-environments.md](docs/branching-and-environments.md)
 
 Eval results (committed under [evals/results/](evals/results/); how to read them: [docs/evals.md](docs/evals.md)):
