@@ -15,12 +15,12 @@ from services.ingest.limits import MIB, Limits
 from services.ingest.pin import PinnedSource, pin_local
 from services.verifier import verify_claim
 
-# The answer-key kinds Code Analysis is built to find. `flow` (callback, promise and async
-# chains) and `config` are not built yet, so they are not scored here. `unresolved` has no key
+# The answer-key kinds Code Analysis is built to find. `config` is not built yet, so it is not
+# scored here. `unresolved` has no key
 # kind: those are Unknown claims that state what could not be followed (CLM-1.4, CLM-1.7).
 # `dependency` is scored only for the fact Code Analysis owns: Discovery owns the other
 # dependency facts, so scoring them here would count its work as a miss.
-KINDS = frozenset({"route", "dead_code", "error_handling", "dependency"})
+KINDS = frozenset({"route", "dead_code", "error_handling", "dependency", "flow"})
 OWNED_DEPENDENCY_FACTS = frozenset({"T03-F1"})
 
 

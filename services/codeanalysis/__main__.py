@@ -1,4 +1,4 @@
-"""python -m services.codeanalysis [--out evals/results] [--run-id codeanalysis-v2]
+"""python -m services.codeanalysis [--out evals/results] [--run-id codeanalysis-v3]
 
 Runs Code Analysis on the fixture, prints the score and, with --out, records it under
 <out>/YYYY-MM-DD-<run-id>/. The score is recorded as it comes out. It is never tuned.
@@ -14,10 +14,15 @@ from services.codeanalysis.run import KINDS, CodeAnalysisRun, run_on_fixture
 from services.evals.key import KEY_PATH, sha256_of
 from services.evals.results import write_results
 
+SOURCES = ("analyze.py", "flow.py")
+
 
 def analyzer_sha256() -> str:
     """Fingerprint of the analyzer source. A change must be re-run and re-committed."""
-    return hashlib.sha256(Path(__file__).with_name("analyze.py").read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    for name in SOURCES:
+        digest.update(Path(__file__).with_name(name).read_bytes())
+    return digest.hexdigest()
 
 
 def report(result: CodeAnalysisRun) -> str:
@@ -58,7 +63,10 @@ def report(result: CodeAnalysisRun) -> str:
         "- T03-F1 is Confirmed in the key and stated Unknown here (the path is computed, so the "
         "module loaded is not known). Matching ignores status, so it counts as found; a stronger "
         "status than the key's would be an overclaim, a weaker one is not.",
-        "- Not built yet, so not scored: `flow` (callback, promise, async chains) and `config`.",
+        "- `flow` claims are structural (nested error-first callbacks, a `.then` chain, an async "
+        "function with several awaits). They do not say what each step means, so the key's prose "
+        "is matched by kind and span only. Value-level data flow is not built. `config` is not "
+        "built either, so it is not scored.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -66,7 +74,7 @@ def report(result: CodeAnalysisRun) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, help="record the result under this results folder")
-    parser.add_argument("--run-id", default="codeanalysis-v2")
+    parser.add_argument("--run-id", default="codeanalysis-v3")
     args = parser.parse_args(argv)
     result = run_on_fixture()
     text = report(result)

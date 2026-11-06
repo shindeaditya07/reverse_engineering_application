@@ -9,6 +9,8 @@ What it produces, and how sure it is:
 - `error_handling`: a `catch` block or a `.catch(...)` callback with no statements (Confirmed).
 - `dead_code`: an exported function that nothing else in the snapshot references (Inferred: a
   reference through reflection or an unresolvable `require` cannot be excluded).
+- `flow`: nested error-first callbacks, a promise chain, or an async function with several awaits
+  (Confirmed; see flow.py). Control flow across steps only, not value-level data flow.
 - `dependency`, Unknown: a `require` whose path is computed, so the module it loads is not
   known. Code Analysis owns this finding (Discovery does not report it).
 - `unresolved`: a file that could not be parsed. Unknown (CLM-1.4, CLM-1.7), never an omission.
@@ -26,6 +28,7 @@ from itertools import product
 import tree_sitter_javascript
 from tree_sitter import Language, Node, Parser
 
+from services.codeanalysis.flow import flow_findings
 from services.discovery.agent import Finding
 from services.discovery.inventory import build_inventory
 from services.evidence import SnapshotReader, Unresolved
@@ -735,6 +738,7 @@ def analyze(reader: SnapshotReader, paths: list[str]) -> Analysis:
     used, escaped = _uses(live, all_paths)
     findings += _route_findings(modules)
     findings += _swallowed(modules)
+    findings += flow_findings((m.path, m.root) for m in modules.values())
     computed, reach, anything = _computed_requires(modules)
     findings += computed
     findings += _dead_code(modules, used, escaped, reach, anything, inventory.main)
