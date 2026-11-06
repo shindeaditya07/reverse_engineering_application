@@ -18,7 +18,10 @@ from services.verifier import verify_claim
 # The answer-key kinds Code Analysis is built to find. `flow` (callback, promise and async
 # chains) and `config` are not built yet, so they are not scored here. `unresolved` has no key
 # kind: those are Unknown claims that state what could not be followed (CLM-1.4, CLM-1.7).
-KINDS = frozenset({"route", "dead_code", "error_handling"})
+# `dependency` is scored only for the fact Code Analysis owns: Discovery owns the other
+# dependency facts, so scoring them here would count its work as a miss.
+KINDS = frozenset({"route", "dead_code", "error_handling", "dependency"})
+OWNED_DEPENDENCY_FACTS = frozenset({"T03-F1"})
 
 
 @dataclass(frozen=True)
@@ -37,7 +40,11 @@ def run_analysis(pinned: PinnedSource, facts: list[KeyFact] | None = None) -> Co
         verdict = verify_claim(to_claim_inputs(finding, reader), reader)
         if not verdict.passed:
             blocked.append((finding.claim_id, tuple(r.check_id for r in verdict.failures)))
-    key = [f for f in (facts if facts is not None else load_key()) if f.kind in KINDS]
+    key = [
+        f
+        for f in (facts if facts is not None else load_key())
+        if f.kind in KINDS and (f.kind != "dependency" or f.fact_id in OWNED_DEPENDENCY_FACTS)
+    ]
     scored = [as_produced(f) for f in found.findings if f.kind in KINDS]
     return CodeAnalysisRun(pinned.revision, found, score(scored, key), tuple(blocked))
 

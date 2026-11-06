@@ -9,8 +9,9 @@ What it produces, and how sure it is:
 - `error_handling`: a `catch` block or a `.catch(...)` callback with no statements (Confirmed).
 - `dead_code`: an exported function that nothing else in the snapshot references (Inferred: a
   reference through reflection or an unresolvable `require` cannot be excluded).
-- `unresolved`: a `require` whose path is computed, or a file that could not be parsed. Unknown
-  (CLM-1.4, CLM-1.7), never an omission.
+- `dependency`, Unknown: a `require` whose path is computed, so the module it loads is not
+  known. Code Analysis owns this finding (Discovery does not report it).
+- `unresolved`: a file that could not be parsed. Unknown (CLM-1.4, CLM-1.7), never an omission.
 
 The call graph is built from the same pass and returned for later agents. It is not a claim.
 
@@ -655,7 +656,7 @@ def _computed_requires(modules: dict[str, Module]) -> tuple[list[Finding], set[s
             out.append(
                 Finding(
                     f"ca:computed-require:{module.path}:{start}",
-                    "unresolved",
+                    "dependency",
                     "unknown",
                     f"{module.path} line {start} loads a module with a path computed at run "
                     f"time, so calls through it cannot be followed; {reach_text}.",

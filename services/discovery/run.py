@@ -15,6 +15,9 @@ from services.verifier import verify_claim
 
 # The answer-key kinds Discovery is built to find. The other kinds belong to later agents.
 KINDS = frozenset({"dependency", "job", "integration", "provenance", "encoding"})
+# Key facts of those kinds that another agent owns. T03-F1 (a `require` with a computed path) is
+# Code Analysis's claim, so it is not a Discovery miss.
+OWNED_ELSEWHERE = frozenset({"T03-F1"})
 
 
 @dataclass(frozen=True)
@@ -39,7 +42,11 @@ def run_discovery(pinned: PinnedSource, facts: list[KeyFact] | None = None) -> D
         verdict = verify_claim(to_claim_inputs(finding, reader), reader)
         if not verdict.passed:
             blocked.append((finding.claim_id, tuple(r.check_id for r in verdict.failures)))
-    key = [f for f in (facts if facts is not None else load_key()) if f.kind in KINDS]
+    key = [
+        f
+        for f in (facts if facts is not None else load_key())
+        if f.kind in KINDS and f.fact_id not in OWNED_ELSEWHERE
+    ]
     return DiscoveryRun(
         pinned.revision,
         found,
