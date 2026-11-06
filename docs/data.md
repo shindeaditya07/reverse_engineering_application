@@ -66,5 +66,4 @@ report and its callers carry the claims.
 ## Storing
 
 `services/data/store.py` verifies each finding and stores it through the claim writer
-([claims.md](claims.md)) as `data@1`. Nothing calls it yet: the worker does not queue this
-agent, and its ordering after Discovery is not enforced.
+([claims.md](claims.md)) as `data@1`. The worker queues it as the `data` job ([worker.md](worker.md)); it needs no other agent's claims, so no order is enforced.

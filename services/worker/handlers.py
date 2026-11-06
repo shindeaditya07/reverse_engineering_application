@@ -2,13 +2,18 @@
 writes only through the claim writer, so running it twice stores nothing twice."""
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.codeanalysis import analyze as analyze_code
+from services.codeanalysis.store import store_analysis
+from services.data import analyze as analyze_data
+from services.data.store import store_data
 from services.db.models import Snapshot, SnapshotFile
 from services.discovery import discover
 from services.discovery.store import store_discovery
@@ -17,6 +22,12 @@ from services.jobs import Claimed, enqueue
 from services.jobs.runner import Handler
 
 DISCOVERY = "discovery"
+CODE_ANALYSIS = "code_analysis"
+DATA = "data"
+# The three agents that read one pinned snapshot and need nothing from each other. The spec
+# draws Discovery first, then Code Analysis and Data in parallel; nothing here enforces that
+# order, because none of the three reads another's claims.
+AGENT_JOBS = (DISCOVERY, CODE_ANALYSIS, DATA)
 SessionFactory = Callable[[], AbstractAsyncContextManager[AsyncSession]]
 
 
@@ -54,14 +65,41 @@ async def enqueue_discovery(
     return await enqueue(session, run_id, DISCOVERY, snapshot.revision, snapshot.id)
 
 
-def discovery_handler(sessions: SessionFactory, store: Path) -> Handler:
-    """Run Discovery on the job's snapshot and store its findings in one transaction: a crash
+async def enqueue_agents(
+    session: AsyncSession, snapshot: Snapshot, run_id: uuid.UUID
+) -> dict[str, tuple[uuid.UUID, bool]]:
+    """One job per agent for (run, snapshot). Queueing the same run again adds nothing."""
+    return {
+        job_type: await enqueue(session, run_id, job_type, snapshot.revision, snapshot.id)
+        for job_type in AGENT_JOBS
+    }
+
+
+def _agent_handler(
+    sessions: SessionFactory,
+    store: Path,
+    run_agent: Callable[[SnapshotReader, list[str]], Any],
+    save: Callable[..., Awaitable[Any]],
+) -> Handler:
+    """Run one agent on the job's snapshot and store its findings in one transaction: a crash
     stores nothing, and a repeat finds every claim key already stored."""
 
     async def handle(job: Claimed) -> None:
         async with sessions() as session:
             snapshot, reader = await load_reader(session, job.snapshot_id, store)
-            found = discover(reader, reader.paths())
-            await store_discovery(session, snapshot.id, job.run_id, found, reader)
+            found = run_agent(reader, reader.paths())
+            await save(session, snapshot.id, job.run_id, found, reader)
 
     return handle
+
+
+def discovery_handler(sessions: SessionFactory, store: Path) -> Handler:
+    return _agent_handler(sessions, store, discover, store_discovery)
+
+
+def code_analysis_handler(sessions: SessionFactory, store: Path) -> Handler:
+    return _agent_handler(sessions, store, analyze_code, store_analysis)
+
+
+def data_handler(sessions: SessionFactory, store: Path) -> Handler:
+    return _agent_handler(sessions, store, analyze_data, store_data)

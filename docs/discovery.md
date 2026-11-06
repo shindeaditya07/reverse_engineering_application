@@ -25,7 +25,7 @@ Only the two read straight from bytes are Confirmed. A line pattern is a heurist
 - **Routes, call graphs, data flow, config and SQL** are Code Analysis (FR-3) and the Data agent. A route in a loop or behind a condition needs a parser, which is why the grep baseline cannot find them either.
 - **Meaning.** The two key facts it misses, T03-F2 (the default payment provider) and T24-F2 (no time of day is set), need a default read in context.
 - **Generated and vendored files are never scanned for findings** (EVD-1.6). They get one provenance claim each.
-- **Storing** goes through the claim writer: `services/discovery/store.py` verifies each finding and stores it ([claims.md](claims.md)). Nothing calls it yet; the worker is next.
+- **Storing** goes through the claim writer: `services/discovery/store.py` verifies each finding and stores it ([claims.md](claims.md)). The worker queues it as the `discovery` job ([worker.md](worker.md)).
 
 ## Reading the score
 

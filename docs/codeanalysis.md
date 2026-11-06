@@ -73,5 +73,4 @@ is not reported (one level only).
 ## Storing
 
 `services/codeanalysis/store.py` verifies each finding and stores it through the claim writer
-([claims.md](claims.md)) as `codeanalysis@1`. Nothing calls it yet: the worker does not queue
-this agent, and Discovery-before-Code-Analysis ordering is not enforced.
+([claims.md](claims.md)) as `codeanalysis@1`. The worker queues it as the `code_analysis` job ([worker.md](worker.md)); it needs no other agent's claims, so no order is enforced.
