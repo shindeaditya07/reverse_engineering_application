@@ -15,12 +15,36 @@ finding and scores it against the reviewed key ([evals.md](evals.md)).
 | `error_handling` | A `catch` block or `.catch(...)` callback with no statements | Confirmed |
 | `dead_code` | An exported function nothing else in the snapshot references | Inferred |
 | `dependency` | A `require` with a computed path (Code Analysis owns it; Discovery does not report it) | Unknown (CLM-1.4): the module loaded is not known and calls through it cannot be followed |
+| `flow` | Nested error-first callbacks (two or more deep), a promise chain with two or more `.then` steps, or an `async` function with two or more `await`s | Confirmed: restates the tree (`flow.py`) |
 | `unresolved` | A first-party file that did not parse, is not UTF-8, or is not JavaScript | Unknown (CLM-1.7) |
 
 It also builds a **call graph** (`Analysis.calls`): edges between functions of the snapshot
 that a call resolves to, through local names, `const x = require(...)` aliases and
 destructured imports. It is returned for later agents. It is not a claim, so the verifier and
 the review queue never see it.
+
+## Flow
+
+`flow.py` states how control passes from one asynchronous step to the next, in three shapes:
+
+- **Callbacks.** A call whose last argument is a function with an `err`, `error` or `e` first
+  parameter (optionally numbered), nested two or more deep. The claim lists the calls on the
+  deepest path. A callback without an error parameter, such as `forEach`, is not counted.
+- **Promise chains.** A call followed by two or more `.then` steps (`.catch` and `.finally` count
+  as steps once the chain qualifies).
+- **Async functions.** An `async` function with two or more `await`s that belong to it, not to a
+  function nested in it. Steps are listed "in source order": a step in a loop or branch may run
+  zero or many times, and the claim does not say.
+
+These claims are structural. They do not say what a step means ("read the order"): that is not in
+the tree. The answer key's prose is matched by kind and overlapping span only, so a flow "hit"
+means the right function was found, not that the key's sentence was reproduced. Steps passed as
+a named callback, a function stored in a variable and used later, `Promise.all`, `async.waterfall`
+and event emitters are not followed. The fixture's `chargeWithRetry` is reported too (two awaits);
+the key does not list it, so it counts against precision.
+
+**Not built: value-level data flow** (where a request field ends up, which values reach a SQL
+call or a response). That is a separate, larger piece and is still owed.
 
 ## How "dead" is decided, and where it is wrong
 
@@ -44,9 +68,8 @@ is not reported (one level only).
 
 ## What it does not do
 
-- **Data flow.** FR-3 asks for it. It is not built. This PR is routes, swallowed errors, dead
-  code, unresolved constructs and the call graph; the key's `flow` facts (callback, promise
-  and async chains) and `config` facts are not attempted and not scored.
+- **Value-level data flow.** FR-3 asks for it. It is not built; `flow` above is control flow
+  across steps only. The key's `config` facts are not attempted and not scored.
 - **ES modules, TypeScript, JSX.** CommonJS and ES2022 syntax that the JavaScript grammar
   reads; a file the parser reports errors in is skipped whole and claimed Unknown. (CommonJS
   only is an open decision, not a settled one.)
