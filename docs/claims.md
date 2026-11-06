@@ -18,4 +18,4 @@
 - **Concurrent writers** of the same key rely on `ON CONFLICT DO NOTHING` on the unique constraint. It is not tested with two live connections: committed `claim_versions` rows cannot be deleted (CLM-1.5), so such a test would leave rows behind.
 - **A run record.** The spec says every step writes one. There is no `runs` table; the `jobs` row and the audit entries are what exist. Say if you want a table.
 - **Re-analysis versions.** Only version 1 is written. Stale detection on a new revision and later versions are separate work (EVD-1.3).
-- **The worker.** Nothing calls `store_discovery` yet; the worker entry point is the next PR.
+- **The worker.** It stores Discovery, Code Analysis and Data findings through this writer ([worker.md](worker.md)).

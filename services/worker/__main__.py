@@ -26,12 +26,21 @@ from services.ingest.errors import IngestError
 from services.ingest.pin import PinnedSource, pin_github, pin_local
 from services.ingest.store import store_snapshot
 from services.jobs import Handler, lease_seconds, run_until_idle, sweep_on_startup
-from services.worker.handlers import DISCOVERY, discovery_handler, enqueue_discovery
+from services.worker.handlers import (
+    CODE_ANALYSIS,
+    DATA,
+    DISCOVERY,
+    code_analysis_handler,
+    data_handler,
+    discovery_handler,
+    enqueue_agents,
+)
 
 
 class RunSummary(TypedDict):
     run_id: str
     jobs: dict[str, int]
+    failed_job_types: list[str]
     claims_by_status: dict[str, int]
     review_queue_by_reason: dict[str, int]
 
@@ -42,7 +51,11 @@ def handlers(engine: AsyncEngine, store: Path) -> dict[str, Handler]:
         async with session_scope(engine) as session:
             yield session
 
-    return {DISCOVERY: discovery_handler(sessions, store)}
+    return {
+        DISCOVERY: discovery_handler(sessions, store),
+        CODE_ANALYSIS: code_analysis_handler(sessions, store),
+        DATA: data_handler(sessions, store),
+    }
 
 
 async def work(engine: AsyncEngine, store: Path) -> dict[str, int]:
@@ -53,7 +66,10 @@ async def work(engine: AsyncEngine, store: Path) -> dict[str, int]:
 
 
 async def summary(session: AsyncSession, run_id: uuid.UUID) -> RunSummary:
-    jobs = (await session.execute(select(Job.status).where(Job.run_id == run_id))).scalars().all()
+    rows = (
+        await session.execute(select(Job.job_type, Job.status).where(Job.run_id == run_id))
+    ).all()
+    jobs = [status for _, status in rows]
     stored = (
         await session.execute(
             select(ClaimVersion.status, func.count())
@@ -74,6 +90,7 @@ async def summary(session: AsyncSession, run_id: uuid.UUID) -> RunSummary:
     return {
         "run_id": str(run_id),
         "jobs": dict(Counter(jobs)),
+        "failed_job_types": sorted(t for t, status in rows if status == "failed"),
         "claims_by_status": {status: n for status, n in stored},
         "review_queue_by_reason": {reason: n for reason, n in queued},
     }
@@ -83,7 +100,7 @@ async def analyze(engine: AsyncEngine, pinned: PinnedSource, store: Path) -> Run
     run_id = uuid.uuid4()
     async with session_scope(engine) as session:
         snapshot, _ = await store_snapshot(session, pinned)
-        await enqueue_discovery(session, snapshot, run_id)
+        await enqueue_agents(session, snapshot, run_id)
     await work(engine, store)
     async with session_scope(engine) as session:
         return await summary(session, run_id)
@@ -103,7 +120,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("work", help="sweep stale jobs, run queued jobs until idle, exit")
-    one = sub.add_parser("analyze", help="pin a source and run Discovery on it")
+    one = sub.add_parser(
+        "analyze", help="pin a source and run Discovery, Code Analysis and Data on it"
+    )
     one.add_argument("source", help="GitHub repository URL or local directory")
     one.add_argument("--ref", help="branch, tag or commit SHA (GitHub URLs only)")
     args = parser.parse_args(argv)
