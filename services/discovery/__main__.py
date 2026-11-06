@@ -1,4 +1,4 @@
-"""python -m services.discovery [--out evals/results] [--run-id discovery-v1]
+"""python -m services.discovery [--out evals/results] [--run-id discovery-v2]
 
 Runs Discovery on the fixture, prints the inventory and the score and, with --out, records it
 under <out>/YYYY-MM-DD-<run-id>/. The score is recorded as it comes out. It is never tuned.
@@ -61,7 +61,7 @@ def report(result: DiscoveryRun) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, help="record the result under this results folder")
-    parser.add_argument("--run-id", default="discovery-v1")
+    parser.add_argument("--run-id", default="discovery-v2")
     args = parser.parse_args(argv)
     result = run_on_fixture()
     text = report(result)

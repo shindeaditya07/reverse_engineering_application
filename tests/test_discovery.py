@@ -102,8 +102,8 @@ def test_a_non_object_package_json_gives_an_empty_inventory(tmp_path: Path) -> N
         "const m = require(`./${name}`);",
     ],
 )
-def test_a_computed_require_is_found(tmp_path: Path, line: str) -> None:
-    assert kinds(tmp_path, line) == ["dynamic-require"]
+def test_a_computed_require_is_left_to_code_analysis(tmp_path: Path, line: str) -> None:
+    assert kinds(tmp_path, line) == []
 
 
 def test_a_literal_require_is_not_dynamic(tmp_path: Path) -> None:
@@ -216,12 +216,12 @@ def test_discovery_only_scores_the_kinds_it_looks_for() -> None:
 
 
 def test_the_patterns_are_fingerprinted() -> None:
-    assert len(patterns_sha256()) == 64 and len(PATTERNS) == 5
+    assert len(patterns_sha256()) == 64 and len(PATTERNS) == 4
 
 
 def test_committed_result_was_run_with_the_current_patterns() -> None:
     """Change a pattern and this fails until Discovery is re-run and re-committed."""
-    manifests = sorted(RESULTS_DIR.glob("*-discovery-v1/manifest.json"))
+    manifests = sorted(RESULTS_DIR.glob("*-discovery-v*/manifest.json"))
     assert manifests, "no committed Discovery result under evals/results/"
     assert json.loads(manifests[-1].read_text())["patterns_sha256"] == patterns_sha256()
 

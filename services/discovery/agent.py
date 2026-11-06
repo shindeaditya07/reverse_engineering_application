@@ -2,6 +2,9 @@
 file property, so each is Inferred (CLM-1.2, CLM-1.3), except the two read from bytes, which
 are exact: a file that is not UTF-8 and a file with CRLF line ends.
 
+A `require` with a computed path is not reported here: Code Analysis owns it (a parser sees it
+exactly, and it is an Unknown claim there, not an Inferred one here).
+
 Generated and vendored files are classified first and never scanned for findings: citing them
 is allowed only for claims about them (EVD-1.6). Discovery does not find routes, call graphs or
 data flow; that is Code Analysis (FR-3), and a loop or a condition needs a parser.
@@ -31,11 +34,10 @@ NODE_BUILTINS = frozenset(
     ).split()
 )
 _REQUIRE = re.compile(r"""\brequire\(\s*(['"])([^'"]+)\1\s*\)""")
-_DYNAMIC_REQUIRE = re.compile(r"""\brequire\(\s*(?!['"][^'"]*['"]\s*\))[^)\s]""")
 _TIMER = re.compile(r"\bsetInterval\s*\(|\bcron\.schedule\s*\(|\bnode-cron\b")
 _HTTP_OUT = re.compile(r"\b(?:https?\.(?:request|get)|axios\.\w+|fetch)\s*\(")
 _SOCKET_OUT = re.compile(r"\bnet\.(?:connect|createConnection)\s*\(")
-PATTERNS = (_REQUIRE, _DYNAMIC_REQUIRE, _TIMER, _HTTP_OUT, _SOCKET_OUT)
+PATTERNS = (_REQUIRE, _TIMER, _HTTP_OUT, _SOCKET_OUT)
 
 
 def patterns_sha256() -> str:
@@ -100,16 +102,6 @@ def _scan_lines(
                         ((path, number, number), ("package.json", *block)),
                     )
                 )
-        if _DYNAMIC_REQUIRE.search(line):
-            out.append(
-                Finding(
-                    f"disc:dynamic-require:{path}:{number}",
-                    "dependency",
-                    "inferred",
-                    f"{path} line {number} loads a module with a computed path.",
-                    ((path, number, number),),
-                )
-            )
         if _TIMER.search(line):
             out.append(
                 Finding(

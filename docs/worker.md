@@ -27,7 +27,7 @@ Point `analyze` at your own database, **never the one the tests use**. It commit
 
 One agent failing does not stop the others. Its job fails visibly after 1 + 3 attempts and `analyze` names it in `failed_job_types` and exits 1; the other agents' claims stay stored.
 
-**Overlap you will see in the review queue.** Discovery and Code Analysis can both report the same line from different angles: the computed `require` in `services/orders_service.js` is an Inferred `dependency` claim from Discovery and an Unknown `unresolved` claim from Code Analysis. They are separate claims with separate keys. Which agent should own it is undecided.
+**One owner per finding.** Where two agents could report the same line, one owns it: the computed `require` in `services/orders_service.js` is Code Analysis's (an Unknown `dependency` claim), and Discovery does not report it.
 
 ## Guarantees and their tests (`tests/test_worker.py`, `tests/test_worker_agents.py`)
 
