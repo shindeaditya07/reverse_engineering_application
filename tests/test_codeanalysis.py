@@ -196,12 +196,12 @@ def test_a_member_call_that_is_not_catch_is_ignored(tmp_path: Path) -> None:
 
 
 def test_a_computed_require_is_unknown_and_names_where_it_may_reach(tmp_path: Path) -> None:
-    (computed,) = found(tmp_path, "const m = require('./plugins/' + name);", "unresolved")
+    (computed,) = found(tmp_path, "const m = require('./plugins/' + name);", "dependency")
     assert computed.status == "unknown" and "./plugins/" in computed.text
 
 
 def test_a_fully_computed_require_may_reach_anything(tmp_path: Path) -> None:
-    (computed,) = found(tmp_path, "const m = require(name);", "unresolved")
+    (computed,) = found(tmp_path, "const m = require(name);", "dependency")
     assert "any module may be loaded" in computed.text
 
 
@@ -376,9 +376,9 @@ def test_every_finding_on_the_fixture_passes_the_verifier() -> None:
 def test_fixture_score() -> None:
     scores = run_on_fixture().scores
     assert scores.missed_facts == () and scores.overclaims == ()
-    assert scores.recall.hits == scores.recall.total == 4
+    assert scores.recall.hits == scores.recall.total == 5
     # The key lists two of the ten routes; the other eight are real and count against precision.
-    assert (scores.precision.hits, scores.precision.total) == (4, 12)
+    assert (scores.precision.hits, scores.precision.total) == (5, 13)
 
 
 def test_the_fixture_states_what_it_could_not_follow() -> None:
@@ -396,7 +396,7 @@ def test_only_the_built_kinds_are_scored() -> None:
 
 def test_committed_result_was_run_with_the_current_analyzer() -> None:
     """Change the analyzer and this fails until it is re-run and re-committed."""
-    manifests = sorted(RESULTS_DIR.glob("*-codeanalysis-v1/manifest.json"))
+    manifests = sorted(RESULTS_DIR.glob("*-codeanalysis-v*/manifest.json"))
     assert manifests, "no committed Code Analysis result under evals/results/"
     assert json.loads(manifests[-1].read_text())["analyzer_sha256"] == analyzer_sha256()
 

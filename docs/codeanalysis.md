@@ -14,7 +14,7 @@ finding and scores it against the reviewed key ([evals.md](evals.md)).
 | `route` | A path computed at run time, a loop that is not over a literal list | Unknown |
 | `error_handling` | A `catch` block or `.catch(...)` callback with no statements | Confirmed |
 | `dead_code` | An exported function nothing else in the snapshot references | Inferred |
-| `unresolved` | A `require` with a computed path | Unknown (CLM-1.4): calls through it cannot be followed |
+| `dependency` | A `require` with a computed path (Code Analysis owns it; Discovery does not report it) | Unknown (CLM-1.4): the module loaded is not known and calls through it cannot be followed |
 | `unresolved` | A first-party file that did not parse, is not UTF-8, or is not JavaScript | Unknown (CLM-1.7) |
 
 It also builds a **call graph** (`Analysis.calls`): edges between functions of the snapshot
@@ -61,9 +61,9 @@ is not reported (one level only).
 
 ## Reading the score
 
-- Recall and precision cover three kinds (4 key facts), so every interval is very wide.
+- Recall and precision cover four kinds (5 key facts), so every interval is very wide. `dependency` is scored only for T03-F1, the one dependency fact Code Analysis owns. The key says Confirmed and the claim is Unknown (the path is computed); matching ignores status, so it counts as found, and only a stronger status than the key's would be an overclaim.
 - **Precision is a floor.** The key lists two routes; the fixture has ten. The other eight are
-  real, so the report shows 20% route precision and 33% overall. That says the key is thin, not
+  real, so the report shows 20% route precision and 38% overall. That says the key is thin, not
   that the claims are wrong.
 - **The analyzer was written after the fixture was read.** Recall of 4/4 shows the approach can
   find these, not how it does on another app. The pilot is the real test.

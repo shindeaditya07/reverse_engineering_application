@@ -1,0 +1,19 @@
+{
+  "answer_key_sha256": "92f6e4ad7d25c4cfdd1b05026e5ea1f643fd0ef3d9075476d346d2534793a983",
+  "blocked_by_verifier": 0,
+  "commit": "6333a8549c3f6513c1db1bd74c4cc57db41d5be7",
+  "findings": 8,
+  "fixture_revision": "c0120433d5f8e0022732a9c4a436e31889d89c5b66d84996640997404dd11a4b",
+  "kind": "discovery",
+  "model": null,
+  "patterns_sha256": "2c86d5bc07852b57f576e725c4c0fa1e9425203755efc293630196748321e70d",
+  "prompt_sha256": null,
+  "recall": "80% (8/10, 95% interval 49% to 94%)",
+  "unscanned": [
+    {
+      "path": "lib/legacy_labels.js",
+      "reason": "undecodable"
+    }
+  ],
+  "worktree_dirty": true
+}

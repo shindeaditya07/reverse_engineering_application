@@ -1,4 +1,4 @@
-"""python -m services.codeanalysis [--out evals/results] [--run-id codeanalysis-v1]
+"""python -m services.codeanalysis [--out evals/results] [--run-id codeanalysis-v2]
 
 Runs Code Analysis on the fixture, prints the score and, with --out, records it under
 <out>/YYYY-MM-DD-<run-id>/. The score is recorded as it comes out. It is never tuned.
@@ -55,6 +55,9 @@ def report(result: CodeAnalysisRun) -> str:
         "- The unmatched route claims are real routes the key does not list: the key holds only "
         "the trap facts, so precision here is a floor.",
         "- The analyzer was written after the fixture was read, so this score is optimistic.",
+        "- T03-F1 is Confirmed in the key and stated Unknown here (the path is computed, so the "
+        "module loaded is not known). Matching ignores status, so it counts as found; a stronger "
+        "status than the key's would be an overclaim, a weaker one is not.",
         "- Not built yet, so not scored: `flow` (callback, promise, async chains) and `config`.",
     ]
     return "\n".join(lines) + "\n"
@@ -63,7 +66,7 @@ def report(result: CodeAnalysisRun) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, help="record the result under this results folder")
-    parser.add_argument("--run-id", default="codeanalysis-v1")
+    parser.add_argument("--run-id", default="codeanalysis-v2")
     args = parser.parse_args(argv)
     result = run_on_fixture()
     text = report(result)
