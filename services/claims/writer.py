@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -111,10 +111,41 @@ async def store_claim(
             raise RuntimeError(f"claim {claim.claim_id!r} exists in run {run_id} without a version")
         return found
 
+    return await _write_version(
+        session,
+        claim_row_id=inserted,
+        number=FIRST_VERSION,
+        snapshot_id=snapshot_id,
+        run_id=run_id,
+        kind=kind,
+        claim=claim,
+        verdict=verdict,
+        producer=producer,
+        reader=reader,
+        action="claim.written",
+        extra={},
+    )
+
+
+async def _write_version(
+    session: AsyncSession,
+    *,
+    claim_row_id: uuid.UUID,
+    number: int,
+    snapshot_id: uuid.UUID,
+    run_id: uuid.UUID,
+    kind: str,
+    claim: ClaimInput,
+    verdict: Verdict,
+    producer: str,
+    reader: SnapshotReader,
+    action: str,
+    extra: dict[str, Any],
+) -> StoredClaim:
     status = _stored_status(verdict)
     version = ClaimVersion(
-        claim_id=inserted,
-        version=FIRST_VERSION,
+        claim_id=claim_row_id,
+        version=number,
         text=_text(claim, verdict),
         status=status,
         producer=producer,
@@ -141,10 +172,11 @@ async def store_claim(
     session.add(
         AuditLog(
             actor=producer,
-            action="claim.written",
+            action=action,
             subject_type="claim_version",
             subject_id=str(version.id),
             detail={
+                **extra,
                 "key": claim.claim_id,
                 "kind": kind,
                 "run_id": str(run_id),
@@ -158,7 +190,53 @@ async def store_claim(
         )
     )
     await session.flush()
-    return StoredClaim(inserted, version.id, True, status, queued)
+    return StoredClaim(claim_row_id, version.id, True, status, queued)
+
+
+async def add_version(
+    session: AsyncSession,
+    *,
+    based_on: uuid.UUID,
+    claim: ClaimInput,
+    producer: str,
+    reader: SnapshotReader,
+) -> StoredClaim:
+    """Store a new version of an existing claim (a reviewer's edit), verified like any other.
+    `based_on` is the version being replaced and must be the claim's latest. Versions are never
+    updated in place (CLM-1.5). A failed check stores the version Unknown and queued."""
+    if claim.status not in STATUSES or claim.producer_kind not in PRODUCER_KINDS:
+        raise ClaimRejected(f"{claim.claim_id!r}: unknown status or producer kind (V-5)")
+    row = (
+        await session.execute(
+            select(Claim, ClaimVersion.version)
+            .join(ClaimVersion, ClaimVersion.claim_id == Claim.id)
+            .where(ClaimVersion.id == based_on)
+        )
+    ).one_or_none()
+    if row is None:
+        raise LookupError(f"claim version {based_on} does not exist")
+    parent, number = row
+    latest = (
+        await session.execute(
+            select(func.max(ClaimVersion.version)).where(ClaimVersion.claim_id == parent.id)
+        )
+    ).scalar_one()
+    if latest != number:
+        raise ValueError(f"version {number} is not the latest ({latest}); edit the latest")
+    return await _write_version(
+        session,
+        claim_row_id=parent.id,
+        number=number + 1,
+        snapshot_id=parent.snapshot_id,
+        run_id=parent.run_id,
+        kind=parent.kind,
+        claim=claim,
+        verdict=verify_claim(claim, reader),
+        producer=producer,
+        reader=reader,
+        action="claim.version_added",
+        extra={"based_on": str(based_on), "version": number + 1},
+    )
 
 
 async def verify_and_store(
