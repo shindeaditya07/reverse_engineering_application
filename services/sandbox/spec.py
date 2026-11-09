@@ -112,3 +112,10 @@ def assert_safe(argv: Sequence[str]) -> None:
         problems.append("the image must be pinned by digest")
     if problems:
         raise ValueError("; ".join(problems))
+
+
+# Node 22 on Debian slim, pinned by digest so a moved tag cannot change what runs.
+# Refresh on purpose: `docker pull node:22-slim`, copy the digest, run the Sandbox Safety job.
+DEFAULT_IMAGE = (
+    "node:22-slim@sha256:5ec23b7c622b00547753bc6ffd78085dd868a68aeb41c8e0a1418f033e13d96d"
+)

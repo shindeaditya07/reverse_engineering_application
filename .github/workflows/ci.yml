@@ -141,3 +141,14 @@ jobs:
       - run: uv sync --frozen
       - name: Smoke eval (no model; fails if a seeded bad claim is missed)
         run: make eval-smoke
+
+  # Runs hostile code in the real sandbox and requires every escape attempt to fail (TST-1.2,
+  # TST-1.3). No database is needed. REQUIRE_DOCKER=1 makes a missing image a failure, not a skip.
+  sandbox-safety:
+    name: Sandbox Safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: make sandbox-safety
