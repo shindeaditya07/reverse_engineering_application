@@ -57,7 +57,7 @@ scripts/              policy_check.py  sample_claims.py  ...
 4. Diagram agent (Mermaid from stored data). **Done** (`docs/diagram.md`): ER, architecture and workflow diagrams; no sequence diagram yet.
 5. Documentation agent. **Done** (`docs/documentation.md`): documents assembled verbatim from claims, checked line by line; no model prose.
 6. Sandbox and Test agent (two-stage dependency fetch). **6a and 6b built** (`docs/sandbox.md`): testability, inputs, sandbox command, keep/drop, Docker runner, `Sandbox Safety` job. Not yet: dependency fetch, `passed` run, test claims, worker job.
-7. Modernization agent (accepted claims only).
+7. Modernization agent (accepted claims only). **Done** (`docs/modernization.md`): candidate boundaries, phased debt map, Unknown dependencies; every proposal cites claims; no model.
 
 ## Phase 4. Pilot
 1. Choose the pilot (permissive licence, no install scripts or native builds) and slice it so total claims are at most 400.
