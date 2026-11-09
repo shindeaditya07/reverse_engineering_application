@@ -37,7 +37,7 @@ def _text(node: Node) -> str:
 
 
 def _span(node: Node) -> tuple[int, int]:
-    return node.start_point.row + 1, node.end_point.row + 1
+    return node.start_point[0] + 1, node.end_point[0] + 1
 
 
 def _cap(start: int, end: int) -> tuple[int, int]:
