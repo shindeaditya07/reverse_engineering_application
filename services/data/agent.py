@@ -30,6 +30,7 @@ from services.codeanalysis.analyze import (
     _text,
     _walk,
 )
+from services.data.pii import pii_findings
 from services.data.schema import ErModel, parse_schema
 from services.data.sql import DYN, SqlUnreadable, Statement, analyze_sql
 from services.discovery.agent import Finding
@@ -371,6 +372,7 @@ def analyze(reader: SnapshotReader, paths: list[str]) -> DataAnalysis:
             )
         )
     findings += _schema_findings(er)
+    findings += pii_findings(reader, [p for p in paths if p not in skip])
     findings += _lineage(er, sites)
     if not unresolved:
         findings += _unused(er, sites)

@@ -397,6 +397,69 @@ def test_crlf_files_cite_normalised_lines_and_verify(tmp_path: Path) -> None:
     assert ("app.js", 2, 2) in [f.evidence[0] for f in result.findings if f.kind == "sql_read"]
 
 
+# ---- personal data ---------------------------------------------------------------------
+
+PEOPLE = (
+    '[\n  {\n    "name": "A Person",\n    "email": "a.person@example.com",\n'
+    '    "phone": "555-0100",\n    "city": "Somewhere"\n  }\n]\n'
+)
+
+
+def pii(tmp_path: Path, files: Mapping[str, str]) -> list[Finding]:
+    result, _ = run(tmp_path, files)
+    return by_kind(list(result.findings), "pii")
+
+
+def test_a_data_file_with_personal_data_gets_one_inferred_claim_without_the_values(
+    tmp_path: Path,
+) -> None:
+    (claim,) = pii(tmp_path, {"data/people.json": PEOPLE})
+    assert claim.claim_id == "data:pii:data/people.json" and claim.status == "inferred"
+    assert "e-mail addresses on line 4" in claim.text and "on line 5" in claim.text
+    for value in ("a.person", "example.com", "555-0100", "A Person", "Somewhere"):
+        assert value not in claim.text  # SEC-1.5: never repeated
+
+
+def test_the_claim_cites_a_line_that_matches_nothing(tmp_path: Path) -> None:
+    result, reader = run(tmp_path, {"data/people.json": PEOPLE})
+    (claim,) = by_kind(list(result.findings), "pii")
+    assert claim.evidence == (("data/people.json", 3, 3),)
+    assert verify_claim(to_claim_inputs(claim, reader), reader).passed
+
+
+def test_a_file_where_every_line_matches_has_no_evidence_and_fails_closed(
+    tmp_path: Path,
+) -> None:
+    result, reader = run(tmp_path, {"data/mail.txt": "a.b@example.com\nc.d@example.com\n"})
+    (claim,) = by_kind(list(result.findings), "pii")
+    assert claim.evidence == ()
+    verdict = verify_claim(to_claim_inputs(claim, reader), reader)
+    assert not verdict.passed and verdict.final_status == "unknown"
+
+
+def test_many_lines_are_cut_and_counted(tmp_path: Path) -> None:
+    rows = "".join(f"x,x{i}@example.com\n" for i in range(9))
+    (claim,) = pii(tmp_path, {"data/many.csv": "id,email\n" + rows})
+    assert "and 3 more" in claim.text
+
+
+def test_code_files_and_clean_data_files_are_not_scanned(tmp_path: Path) -> None:
+    found = pii(
+        tmp_path,
+        {
+            "app.js": "const a = 'a.b@example.com';\n",
+            "data/none.json": '{"count": 3}\n',
+            "vendor/people.json": PEOPLE,
+            "generated/people.json": PEOPLE,
+        },
+    )
+    assert found == []
+
+
+def test_a_data_file_that_is_not_utf8_is_skipped(tmp_path: Path) -> None:
+    assert pii(tmp_path, {"data/latin.csv": b"caf\xe9,a.b@example.com\n"}) == []  # type: ignore[dict-item]
+
+
 # ---- the fixture -----------------------------------------------------------------------
 
 
@@ -408,9 +471,9 @@ def test_every_finding_on_the_fixture_passes_the_verifier() -> None:
 def test_fixture_score() -> None:
     scores = run_on_fixture().scores
     assert scores.missed_facts == () and scores.overclaims == ()
-    assert scores.recall.hits == scores.recall.total == 6
+    assert scores.recall.hits == scores.recall.total == 7
     # The key lists 6 of the fixture's data facts; the other statements and columns are real.
-    assert (scores.precision.hits, scores.precision.total) == (6, 23)
+    assert (scores.precision.hits, scores.precision.total) == (7, 24)
 
 
 def test_the_fixture_model_has_three_tables_and_one_inferred_relation() -> None:
@@ -433,7 +496,7 @@ def test_only_the_built_kinds_are_scored() -> None:
 
 def test_committed_result_was_run_with_the_current_analyzer() -> None:
     """Change the analyzer and this fails until it is re-run and re-committed."""
-    manifests = sorted(RESULTS_DIR.glob("*-data-v1/manifest.json"))
+    manifests = sorted(RESULTS_DIR.glob("*-data-v*/manifest.json"))
     assert manifests, "no committed Data agent result under evals/results/"
     assert json.loads(manifests[-1].read_text())["analyzer_sha256"] == analyzer_sha256()
 

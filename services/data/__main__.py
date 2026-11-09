@@ -1,4 +1,4 @@
-"""python -m services.data [--out evals/results] [--run-id data-v1]
+"""python -m services.data [--out evals/results] [--run-id data-v2]
 
 Runs the Data agent on the fixture, prints the score and, with --out, records it under
 <out>/YYYY-MM-DD-<run-id>/. The score is recorded as it comes out. It is never tuned.
@@ -15,7 +15,7 @@ from services.evals.key import KEY_PATH, sha256_of
 from services.evals.results import write_results
 
 PARSERS = f"sqlglot {version('sqlglot')} (MySQL dialect); tree-sitter-javascript 0.25"
-SOURCES = ("agent.py", "schema.py", "sql.py")
+SOURCES = ("agent.py", "pii.py", "schema.py", "sql.py")
 
 
 def analyzer_sha256() -> str:
@@ -67,7 +67,10 @@ def report(result: DataRun) -> str:
         "- The unmatched claims are mostly real statements and columns the key does not list: the "
         "key holds only the trap facts, so precision here is a floor.",
         "- The analyzer was written after the fixture was read, so this score is optimistic.",
-        "- Not built yet, so not scored: `pii` (personal data in sample files).",
+        "- `pii` is a pattern match (e-mail, phone, SSN-like, card-like, fields named like "
+        "personal data) in data-like files. It does not find names or free-text addresses. "
+        "The claim cites the nearest line before the first match that matches nothing, because "
+        "a cited line with personal data would be withheld by V-9. Status is Inferred.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -75,7 +78,7 @@ def report(result: DataRun) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, help="record the result under this results folder")
-    parser.add_argument("--run-id", default="data-v1")
+    parser.add_argument("--run-id", default="data-v2")
     args = parser.parse_args(argv)
     result = run_on_fixture()
     text = report(result)

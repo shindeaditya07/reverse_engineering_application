@@ -23,6 +23,7 @@ Eval results (committed under [evals/results/](evals/results/); how to read them
 | [codeanalysis-v2](evals/results/2026-11-06-codeanalysis-v2/report.md) | Code Analysis agent after taking the computed `require` (T03-F1, stated Unknown); supersedes codeanalysis-v1. Scored on 4 kinds (5 facts); optimistic; precision is a floor (key lists 2 of 10 routes). | 100% (5/5, 95% interval 57% to 100%) | 38% (5/13) | 2026-11-06 |
 | [codeanalysis-v3](evals/results/2026-11-06-codeanalysis-v3/report.md) | Code Analysis agent with `flow` claims (callback, promise, async); supersedes codeanalysis-v2. Scored on 5 kinds (8 facts); optimistic; flow recall is by kind and span, the claims are structural; precision is a floor. | 100% (8/8, 95% interval 68% to 100%) | 47% (8/17) | 2026-11-06 |
 | [data-v1](evals/results/2026-11-06-data-v1/report.md) | Data agent, no model. Scored on 3 kinds (6 facts); written after the fixture was read, so optimistic; precision is a floor (key lists 6 data facts, the fixture has many more). | 100% (6/6, 95% interval 61% to 100%) | 26% (6/23) | 2026-11-06 |
+| [data-v2](evals/results/2026-11-09-data-v2/report.md) | Data agent with `pii` claims (pattern match in data files, Inferred); supersedes data-v1. Scored on 4 kinds (7 facts); optimistic; precision is a floor. | 100% (7/7, 95% interval 65% to 100%) | 29% (7/24) | 2026-11-09 |
 
 The smoke eval (`make eval-smoke`) is a self-check of the harness, not a result.
 

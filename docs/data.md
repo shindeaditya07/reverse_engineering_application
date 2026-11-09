@@ -36,9 +36,29 @@ A call on a first-party module counts only if that module defines a function of 
 parameter (`pool.query(sql, ...)` inside `lib/db.js`) is **plumbing**: it is listed in the
 report and its callers carry the claims.
 
+## Personal data
+
+`pii.py` runs the ingest scanner's personal-data patterns (SEC-1.5) over data-like text files
+(`.json .ndjson .csv .tsv .sql .txt .yml .yaml .xml`) that are not vendored or generated. A file
+with a match gets one **Inferred** `pii` claim (`data:pii:<path>`) that names the kinds and the
+lines: e-mail addresses, phone numbers, SSN-like and card-like numbers, and fields named like
+personal data. **The values are never repeated.** Source code is not scanned: a fake address in a
+test is not sample data.
+
+Two things to know when reviewing one:
+
+- **The claim cites a line that matches nothing**, the nearest before the first match. A cited
+  line with personal data would make V-9 withhold the claim, so the evidence cannot be the lines
+  the claim is about; their numbers are in the text. If every line matches, the claim has no
+  evidence and is stored Unknown. Whether V-9 should allow a masked excerpt is a rules question,
+  not decided here.
+- **The scanner does not find names or free-text addresses** under a plain field name. The
+  fixture's names are found only because the same records hold e-mail addresses. The claim says
+  the file may hold more.
+
 ## What it does not do
 
-- **PII in sample data** (key kind `pii`). Not built, not scored.
+- **Names and free-text addresses as personal data.** See "Personal data" below.
 - **Query builders it cannot see through.** The fixture's ORM works because one function
   receives the table name as a literal. A builder that assembles columns or tables from data
   gives Unknown claims, which is the right answer and a lot of review work on a real app.
