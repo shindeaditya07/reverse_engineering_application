@@ -1,0 +1,31 @@
+from services.models.client import (
+    Completion,
+    FakeClient,
+    LocalClient,
+    MissingRecording,
+    ModelClient,
+    ModelError,
+    NonLocalEndpoint,
+    RecordedClient,
+    RecordingClient,
+    Request,
+    build_prompt,
+    check_local,
+    logged_complete,
+)
+
+__all__ = [
+    "Completion",
+    "FakeClient",
+    "LocalClient",
+    "MissingRecording",
+    "ModelClient",
+    "ModelError",
+    "NonLocalEndpoint",
+    "RecordedClient",
+    "RecordingClient",
+    "Request",
+    "build_prompt",
+    "check_local",
+    "logged_complete",
+]
