@@ -55,7 +55,7 @@ scripts/              policy_check.py  sample_claims.py  ...
 2. Business Rule agent. **Built** (`docs/businessrule.md`); awaits a recorded model run and worker wiring.
 3. Verification wiring: retry, then demote to Unknown. **Done** (`docs/businessrule.md`): retry only hard failures, demotion by the claim writer, `--rules` worker jobs.
 4. Diagram agent (Mermaid from stored data). **Done** (`docs/diagram.md`): ER, architecture and workflow diagrams; no sequence diagram yet.
-5. Documentation agent.
+5. Documentation agent. **Done** (`docs/documentation.md`): documents assembled verbatim from claims, checked line by line; no model prose.
 6. Sandbox and Test agent (two-stage dependency fetch).
 7. Modernization agent (accepted claims only).
 
