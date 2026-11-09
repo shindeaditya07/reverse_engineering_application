@@ -1,4 +1,4 @@
-.PHONY: install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
+.PHONY: sandbox-safety install up down lint test audit build secrets policy-check policy-lock answer-key migrate seed eval eval-smoke generate-types
 
 install:
 	uv sync
@@ -46,6 +46,12 @@ answer-key:
 # Apply migrations to DATABASE_URL (never run at API startup).
 migrate:
 	uv run alembic upgrade head
+
+# Needs a running Docker daemon. Pulls the pinned image, then runs hostile code in it and
+# requires every escape attempt to fail (TST-1.2, TST-1.3).
+sandbox-safety:
+	docker pull "$$(uv run python -c 'from services.sandbox.spec import DEFAULT_IMAGE as i; print(i)')"
+	REQUIRE_DOCKER=1 uv run pytest tests/test_sandbox_docker.py --no-cov -p no:warnings
 
 # Not built yet. These fail on purpose instead of passing as stubs.
 seed eval generate-types:

@@ -56,7 +56,7 @@ scripts/              policy_check.py  sample_claims.py  ...
 3. Verification wiring: retry, then demote to Unknown. **Done** (`docs/businessrule.md`): retry only hard failures, demotion by the claim writer, `--rules` worker jobs.
 4. Diagram agent (Mermaid from stored data). **Done** (`docs/diagram.md`): ER, architecture and workflow diagrams; no sequence diagram yet.
 5. Documentation agent. **Done** (`docs/documentation.md`): documents assembled verbatim from claims, checked line by line; no model prose.
-6. Sandbox and Test agent (two-stage dependency fetch). **6a built** (`docs/sandbox.md`): testability, inputs, sandbox command, keep/drop; no execution. 6b: Docker runner, `Sandbox Safety` CI job, dependency fetch.
+6. Sandbox and Test agent (two-stage dependency fetch). **6a and 6b built** (`docs/sandbox.md`): testability, inputs, sandbox command, keep/drop, Docker runner, `Sandbox Safety` job. Not yet: dependency fetch, `passed` run, test claims, worker job.
 7. Modernization agent (accepted claims only).
 
 ## Phase 4. Pilot

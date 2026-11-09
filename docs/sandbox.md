@@ -1,7 +1,8 @@
-# Sandbox and Test agent (FR-8, TST-1.x): part 6a
+# Sandbox and Test agent (FR-8, TST-1.x): parts 6a and 6b
 
-Status: built for Phase 3 item 6, part 6a. **Nothing here executes legacy code.** The Docker
-runner, the CI job that tries to break out, and the dependency-fetch stage are part 6b.
+Status: 6a (testability, inputs, command, keep/drop) and 6b (Docker runner, Sandbox Safety job) are
+built. Still not built: the dependency-fetch stage, running generated tests to fill in `passed`,
+storing observations as claims, and a worker job (see the end).
 
 ## What 6a does
 1. **Testability** (`testable.py`, deterministic). A module is a test target only if it and every
@@ -45,9 +46,37 @@ a passing suite here says little about the app as a whole.
 - **No worker job and no recorded model run.** The proposal prompt has never met the real model;
   tests use the fake client.
 - **No dependency fetch.** The fixture has no lockfile, so the stage could not run on it.
-- **Isolation is unproven.** The container that runs this has the Docker client but no daemon.
-  6b adds a `Sandbox Safety` CI job (network call, write to the mount, host file read, fork bomb,
-  memory bomb, timeout) that must see each fail.
+- **Isolation is proven in 6b**, not 6a (see below).
 
 Constants not in `rules_constants.yaml` (mine): process cap 256, tmpfs 64 MB, at most 5 inputs per
 function, 500 characters per input.
+
+## Part 6b: the Docker runner and the proof
+`docker.py` `DockerRunner(snapshot_dir)` is the only code that executes legacy code. It builds the
+command with `docker_command` (re-checked by `assert_safe`), writes the job to stdin, reads stdout
+up to 256 KB, discards stderr (nothing the legacy code prints is kept), and kills the container
+by name at 300 s. Statuses: `ok`, `timeout`, `memory` (exit 137 that we did not cause), `crash`,
+`bad_output`. Each is a failure except `ok`. The docker client is reaped as well, because it can
+outlive its container. The pinned image is `DEFAULT_IMAGE` in `spec.py` (node 22 slim, by digest).
+
+`tests/test_sandbox_docker.py` runs 13 hostile probes in a real container, calling the runner
+directly so they hold even if the testability check were bypassed:
+runs as 65534 with no capabilities and no-new-privileges; none of the host's environment gets in;
+no network, not even loopback; `/app`, `/` and the harness are read-only; `/tmp` cannot execute; no
+Docker socket and only expected mounts; a fork bomb stops under the process cap; a 4 GB allocation
+is killed and reported as `memory`; an endless loop is killed at the deadline and leaves no
+container; a 400 KB reply is `bad_output`; a path outside the snapshot is refused.
+
+`make sandbox-safety` pulls the pinned image and runs them with `REQUIRE_DOCKER=1`, where a missing
+Docker or image is a failure. CI runs it as the **Sandbox Safety** job. Without `REQUIRE_DOCKER`,
+the tests skip when Docker or the image is missing, so `make test` still works without Docker.
+
+Snapshot files must be readable by user 65534. The pinned copy is mode 444/555, so they are.
+
+## Still not done
+- **Dependency-fetch stage (TST-1.6).** The fixture has no lockfile, so it could not be exercised.
+- **`passed` count.** Running the generated test file against the original needs a third mount,
+  which `assert_safe` refuses. It needs a deliberate change to the allowed mounts.
+- **Observations as claims.** Still blocked by V-5 and the file-range-only evidence references.
+- **Worker job and recorded model run.**
+- Add `Sandbox Safety` to the required checks after it has run green once.

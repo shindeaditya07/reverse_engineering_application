@@ -406,3 +406,71 @@ def test_fake_runner_records_jobs_and_fails_closed_on_unknown_calls() -> None:
     runner = FakeRunner({("a.js", "f"): RunResult("ok", (Observation("value", 1),))})
     assert runner.run(RunJob("a.js", "f", ([1],))).status == "ok"
     assert runner.run(RunJob("b.js", "g", ([1],))).status == "crash" and len(runner.jobs) == 2
+
+
+# --- the Docker runner's own logic, with a stand-in for the docker command -------------------
+
+FAKE_DOCKER = """#!/usr/bin/env python3
+import json, os, sys, time
+if sys.argv[1] == "kill":
+    open(os.environ["FAKE_LOG"], "a").write("kill " + sys.argv[2] + "\\n")
+    sys.exit(0)
+job = json.loads(sys.stdin.read())
+fn = job["function"]
+if fn == "ok":
+    print(json.dumps({"observations": [{"outcome": "value", "value": 1}] * len(job["inputs"])}))
+elif fn == "oom":
+    sys.exit(137)
+elif fn == "crash":
+    sys.exit(1)
+elif fn == "hang":
+    time.sleep(60)
+elif fn == "flood":
+    sys.stdout.write("x" * 400000)
+elif fn == "junk":
+    print("not json")
+"""
+
+
+@pytest.fixture
+def fake(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[str, Path]:
+    script = tmp_path / "docker"
+    script.write_text(FAKE_DOCKER, encoding="utf-8")
+    script.chmod(0o755)
+    log = tmp_path / "log"
+    monkeypatch.setenv("FAKE_LOG", str(log))
+    return str(script), log
+
+
+@pytest.mark.parametrize(
+    ("fn", "status"),
+    [("ok", "ok"), ("oom", "memory"), ("crash", "crash"), ("hang", "timeout"),
+     ("flood", "bad_output"), ("junk", "bad_output")],
+)  # fmt: skip
+def test_docker_runner_maps_every_end_to_a_status(
+    fake: tuple[str, Path], tmp_path: Path, fn: str, status: str
+) -> None:
+    from services.sandbox.docker import DockerRunner
+
+    runner = DockerRunner(tmp_path, image=IMAGE, timeout_s=2, docker=fake[0])
+    result = runner.run(RunJob("m.js", fn, ([1],)))
+    assert result.status == status
+    assert (result.status == "ok") == bool(result.observations)
+    killed = fake[1].exists() and "kill sb-" in fake[1].read_text()
+    assert killed == (fn in ("hang", "flood"))  # killed by name on the deadline or an overflow
+
+
+def test_docker_runner_never_runs_a_command_that_assert_safe_refuses(tmp_path: Path) -> None:
+    from services.sandbox.docker import DockerRunner
+
+    with pytest.raises(ValueError):
+        DockerRunner(tmp_path, image="node:22").run(RunJob("m.js", "f", ([1],)))
+    with pytest.raises(ValueError):
+        DockerRunner(Path("/a,b"), image=IMAGE).run(RunJob("m.js", "f", ([1],)))
+
+
+def test_docker_runner_without_docker_is_a_failure_not_a_crash(tmp_path: Path) -> None:
+    from services.sandbox.docker import DockerRunner
+
+    runner = DockerRunner(tmp_path, image=IMAGE, docker="/nonexistent/docker")
+    assert runner.run(RunJob("m.js", "f", ([1],))).status == "crash"
