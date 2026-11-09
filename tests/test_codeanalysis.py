@@ -495,3 +495,56 @@ def test_cli_fails_when_the_verifier_blocks_a_finding(
     blocked = type(real)(real.pinned_revision, real.analysis, real.scores, (("x", ("V-2",)),))
     monkeypatch.setattr(cli, "run_on_fixture", lambda: blocked)
     assert cli.main([]) == 1
+
+
+# ---- a crash in tree-sitter 0.26.0 -----------------------------------------------------
+
+_LARGE_APP = (
+    """
+const express = require('express');
+const router = express.Router();
+"""
+    + (
+        "router.get('/a/:id', restrict, async (req, res) => {\n"
+        "  try {\n"
+        "    await db.orders.deleteOne({ _id: id });\n"
+        "    f().then(() => { if (x) { res.status(200).json({ m: 'ok' }); return; } res.redirect('/a'); });\n"
+        "  } catch (ex) { console.log('e', ex); res.redirect('/b'); }\n"
+        "});\n"
+    )
+    * 100
+)
+
+
+def test_a_large_route_file_does_not_crash_the_parser_binding(tmp_path: Path) -> None:
+    """tree-sitter 0.26.0 segfaults on `node.end_point.row` in a file this size (found on a real
+    Express app). Row is read by index instead. This runs in a child process because the failure
+    it guards against kills the interpreter, which would take the whole test run with it."""
+    import subprocess
+    import sys
+
+    script = (
+        "import importlib, sys\n"
+        "sys.path.insert(0, sys.argv[2])\n"
+        "from pathlib import Path\n"
+        "from services.evidence import SnapshotReader\n"
+        "from services.ingest.limits import MIB, Limits\n"
+        "from services.ingest.pin import pin_local\n"
+        "analyze = importlib.import_module('services.codeanalysis.analyze').analyze\n"
+        "root = Path(sys.argv[1])\n"
+        "pin = pin_local(root / 'source', root / 'store', Limits(10 * MIB, 1000, 30))\n"
+        "reader = SnapshotReader.from_pinned(pin)\n"
+        "print(len(analyze(reader, [f.path for f in pin.tree.files]).findings))\n"
+    )
+    repo = Path(__file__).resolve().parents[1]
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "routes.js").write_text(_LARGE_APP, encoding="utf-8")
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(tmp_path), str(repo)],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert done.returncode == 0, done.stderr[-400:]
+    assert int(done.stdout.strip()) >= 100
