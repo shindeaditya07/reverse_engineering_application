@@ -222,3 +222,11 @@ def test_record_script_refuses_a_hosted_endpoint(tmp_path: Path) -> None:
     )
     assert out.returncode != 0 and "not a local address" in out.stderr
     assert not (tmp_path / "recording.json").exists()
+
+
+def test_committed_prompts_match_the_current_finder_and_prompt(tmp_path: Path) -> None:
+    """Change the finder or prompt and this fails until prompts.json is exported and re-recorded."""
+    fresh = tmp_path / "prompts.json"
+    assert main(["prompts", "--out", str(fresh)]) == 0
+    committed = Path(__file__).resolve().parents[1] / "evals" / "businessrule" / "prompts.json"
+    assert json.loads(committed.read_text()) == json.loads(fresh.read_text())
