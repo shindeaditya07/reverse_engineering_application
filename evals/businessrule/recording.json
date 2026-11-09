@@ -1,0 +1,85 @@
+{
+  "calls": {
+    "15b91e112215aa897438a59da8d9d821fcaa926d6557ad8ffccea2372c62574e": {
+      "text": "{\"rules\":[{\"text\":\"An order must contain between 1 and 50 items, otherwise it is rejected with a 400 status and an error message.\",\"line\":5}]}",
+      "tokens_in": 338,
+      "tokens_out": 40
+    },
+    "233e30d035f952434f885389af1fbb337c4dbd165790592b19ac0ed73b099908": {
+      "text": "{\"rules\":[]}",
+      "tokens_in": 278,
+      "tokens_out": 5
+    },
+    "259d9f2af0db4aeadbdb464ad53aedd19c2eb170621b53d391e642037ebc33f7": {
+      "text": "{\"rules\":[{\"text\":\"If the status in the request body is not one of 'open', 'paid', 'shipped', or 'closed', a 400 error with the message 'unknown status' is returned.\",\"line\":13}]}",
+      "tokens_in": 338,
+      "tokens_out": 53
+    },
+    "2d9c494b7d150f4ec3f3ee88b7eea393a9eda060b76bf3516a801776ddd4addc": {
+      "text": "{\"rules\":[{\"text\":\"Customer names must be strings between 1 and 80 characters long.\",\"line\":21}]}",
+      "tokens_in": 347,
+      "tokens_out": 27
+    },
+    "68cab7b25e2de1a29bb589a6422bcaeb70fa174e183905802b63f2a92bae7841": {
+      "text": "{\"rules\":[]}",
+      "tokens_in": 283,
+      "tokens_out": 5
+    },
+    "79d790f11136a007ca401b5b1e6cfa6f0969959a8f6bdb641c5a88bd01773630": {
+      "text": "{\"rules\":[{\"text\":\"Loyalty tier 'none' has a discount of 0 percent, 'silver' has a discount of 5 percent, and 'gold' has a discount of 15 percent.\",\"line\":6}]}",
+      "tokens_in": 300,
+      "tokens_out": 50
+    },
+    "7a53adf93d3a45a5f4272d23c57a40c253281a13dc2045bdfcfc7e1264817da0": {
+      "text": "```json\n{\"rules\":[]}\n```",
+      "tokens_in": 346,
+      "tokens_out": 10
+    },
+    "7c64d0a12d8ac35818fb7af724ea9226d0c25435ec5a22fad15569a71c734a7e": {
+      "text": "```json\n{\"rules\":[]}\n```",
+      "tokens_in": 298,
+      "tokens_out": 10
+    },
+    "7d1b1f8c7f2fce92417aeba3f6fb89188763b24d49ffd877cc91bc7dd2e6b8cf": {
+      "text": "{\"rules\":[{\"text\":\"Shipments are scheduled for the next day if they are placed at or after 2 PM.\",\"line\":23}]}",
+      "tokens_in": 318,
+      "tokens_out": 31
+    },
+    "99f8b5a89ea96fe7c9f66946d79ebca0d7cd039acce9e87b810418f8440488e3": {
+      "text": "```json\n{\"rules\":[{\"text\":\"Subtotals equal to or greater than the free shipping threshold receive free shipping, otherwise a flat rate of 5.99 is applied.\",\"line\":17}]}\n```",
+      "tokens_in": 296,
+      "tokens_out": 44
+    },
+    "a270c4c83afea5773ecf3f3ddb916db93d390190ea8dfbfff5e98c7d0467d71c": {
+      "text": "```json\n{\"rules\":[{\"text\":\"Customer names longer than 60 characters are rejected with a 400 error.\",\"line\":11}]}\n```",
+      "tokens_in": 402,
+      "tokens_out": 34
+    },
+    "c24a495d4221d4c35e27336c535254482168c73595c96483f7d85a64ab174210": {
+      "text": "```json\n{\"rules\":[]}\n```",
+      "tokens_in": 388,
+      "tokens_out": 10
+    },
+    "cefafeebb2222fb492a7343d4bde307c385f48b4718bb88227c3068794ffeb86": {
+      "text": "```json\n{\n  \"rules\": [\n    {\n      \"text\": \"Orders are placed with a subtotal calculated from the items.\",\n      \"line\": 27\n    },\n    {\n      \"text\": \"Loyalty discount is applied based on the customer's loyalty tier and the subtotal.\",\n      \"line\": 29\n    },\n    {\n      \"text\": \"Total is calculated by subtracting bulk discounts, adding loyalty discount, tax, and shipping costs from the subtotal.\",\n      \"line\": 30\n    },\n    {\n      \"text\": \"An order is inserted into the database with the customer ID, total amount in cents, and ship date.\",\n      \"line\": 32\n    },\n    {\n      \"text\": \"Product stock is updated by subtracting the quantity of each item ordered from the current stock.\",\n      \"line\": 38\n    },\n    {\n      \"text\": \"Payment is charged with retries for the order ID and total amount in cents.\",\n      \"line\": 40\n    },\n    {\n      \"text\": \"An event is published to a queue indicating that an order has been created, including the order ID and total amount in cents.\",\n      \"line\": 43\n    },\n    {\n      \"text\": \"A receipt is sent for the order, handling any errors by logging them if they occur.\",\n      \"line\": 48\n    }\n  ]\n}\n```",
+      "tokens_in": 586,
+      "tokens_out": 297
+    },
+    "e6af7ea572d7d96b010d7a98f4fde0119c7d4872dd75e207ccccbccece557db1": {
+      "text": "{\"rules\":[{\"text\":\"Orders placed in December have a surcharge of 3% added to the total.\",\"line\":15}]}",
+      "tokens_in": 326,
+      "tokens_out": 29
+    },
+    "ee38e0d4981215905c18cd3fa30141de1ff3883a36ce7b4a9e697380d8bd82d6": {
+      "text": "```json\n{\n  \"rules\": [\n    {\n      \"text\": \"If the order is not found, return a 404 error.\",\n      \"line\": 35\n    },\n    {\n      \"text\": \"If the order is closed, return a 409 error.\",\n      \"line\": 36\n    }\n  ]\n}\n```",
+      "tokens_in": 398,
+      "tokens_out": 77
+    },
+    "f7bf24e603c2c13e9c5b06d334a5a056e6a91277ccab37d7af97641fb75e7930": {
+      "text": "{\"rules\":[{\"text\":\"Bulk discounts apply if features.bulkDiscount is enabled and the line count is 10 or more, reducing the subtotal by 5%.\",\"line\":10}]}",
+      "tokens_in": 318,
+      "tokens_out": 40
+    }
+  },
+  "model": "qwen2.5-coder:7b"
+}

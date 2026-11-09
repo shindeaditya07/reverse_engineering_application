@@ -1,6 +1,6 @@
 # Business Rule agent (FR-5)
 
-Status: built for Phase 3 item 2. **No recorded model run exists yet**, so there is no real score.
+Status: built for Phase 3 item 2. One recorded run exists: `businessrule-v1` (qwen2.5-coder:7b).
 
 ## How it works
 1. **Finder (deterministic, `candidates.py`).** Picks spans of at most 40 lines that look like
@@ -39,3 +39,10 @@ Claim IDs: `br:<path>:<line>:<n>` (rule), `br:unexplained:<span>` and `br:unread
 ## Not built yet
 Worker wiring (job type and queue), retry-then-demote (Phase 3 item 3), cross-file rules (a rule
 split between a caller and a callee is two partial claims), and rules inside config tables.
+
+## First recorded result (2026-11-09)
+Key score: recall 7/11, precision 7/17 (floor). Hand audit: 16 of 17 sentences true, 1 false
+(a flipped sign in the order total), V-10 demoted 3 true sentences. Details in
+`evals/results/2026-11-09-businessrule-v1/hand-audit.md`. Re-record with the steps above after
+any change to the finder or prompt; `tests/test_businessrule.py` fails until prompts.json and
+the recording match.

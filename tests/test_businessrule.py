@@ -230,3 +230,20 @@ def test_committed_prompts_match_the_current_finder_and_prompt(tmp_path: Path) -
     assert main(["prompts", "--out", str(fresh)]) == 0
     committed = Path(__file__).resolve().parents[1] / "evals" / "businessrule" / "prompts.json"
     assert json.loads(committed.read_text()) == json.loads(fresh.read_text())
+
+
+def test_committed_recording_covers_exactly_the_committed_prompts() -> None:
+    base = Path(__file__).resolve().parents[1] / "evals" / "businessrule"
+    prompts = json.loads((base / "prompts.json").read_text())
+    recording = json.loads((base / "recording.json").read_text())
+    assert set(recording["calls"]) == set(prompts)
+    assert recording["model"]
+
+
+def test_recorded_run_replays_without_a_model(fixture_pin: PinnedSource) -> None:
+    from services.models import RecordedClient
+
+    path = Path(__file__).resolve().parents[1] / "evals" / "businessrule" / "recording.json"
+    result = run(run_analysis(fixture_pin, RecordedClient(path)))
+    assert result.scores.recall.hits == 7 and result.scores.recall.total == 11
+    assert not any(f.status == "confirmed" for f in result.analysis.findings)

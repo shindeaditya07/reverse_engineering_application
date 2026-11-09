@@ -1,0 +1,13 @@
+{
+  "answer_key_sha256": "92f6e4ad7d25c4cfdd1b05026e5ea1f643fd0ef3d9075476d346d2534793a983",
+  "blocked_by_verifier": 3,
+  "claims": 18,
+  "commit": "4a8cc6aaa0e8e6bec5332e3748d4bcbfc661e1aa",
+  "fixture_revision": "c0120433d5f8e0022732a9c4a436e31889d89c5b66d84996640997404dd11a4b",
+  "kind": "businessrule",
+  "model": "qwen2.5-coder:7b",
+  "prompt_sha256": "9137a41e12576fbe5e7711d19804b108931eddc97369a153674bdf4778e65fc6",
+  "recall": "64% (7/11, 95% interval 35% to 85%)",
+  "recording_sha256": "00089479e1be0f202e0c7cc202faafe3fbd5d135f01f05ca7a0ee12f640d5367",
+  "worktree_dirty": true
+}

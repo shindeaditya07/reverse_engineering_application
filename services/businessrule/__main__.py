@@ -19,10 +19,11 @@ from pathlib import Path
 
 from services.api.settings import get_settings
 from services.businessrule.candidates import find_candidates
-from services.businessrule.prompt import build_request
+from services.businessrule.prompt import INSTRUCTION, build_request
 from services.businessrule.run import RuleRun, pin_fixture, run_analysis
 from services.discovery.inventory import build_inventory
-from services.evals.key import load_key
+from services.evals.key import KEY_PATH, load_key, sha256_of
+from services.evals.results import write_results
 from services.evidence import SnapshotReader
 from services.models import LocalClient, ModelClient, RecordedClient, RecordingClient
 from services.models.client import prompt_hash
@@ -98,7 +99,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m services.businessrule")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("prompts").add_argument("--out", type=Path, required=True)
-    sub.add_parser("run").add_argument("--recording", type=Path, required=True)
+    run_p = sub.add_parser("run")
+    run_p.add_argument("--recording", type=Path, required=True)
+    run_p.add_argument("--out", type=Path, help="record the result under this results folder")
+    run_p.add_argument("--run-id", default="businessrule-v1")
     sub.add_parser("live").add_argument("--record", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "prompts":
@@ -111,7 +115,22 @@ def main(argv: list[str] | None = None) -> int:
         client = LocalClient(settings.model_endpoint, settings.model_name)
         if args.record:
             client = RecordingClient(client, args.record, settings.model_name)
-    print(report(asyncio.run(execute(client))))
+    result = asyncio.run(execute(client))
+    text = report(result)
+    print(text)
+    if args.cmd == "run" and args.out is not None:
+        manifest = {
+            "kind": "businessrule",
+            "model": json.loads(args.recording.read_text(encoding="utf-8"))["model"],
+            "prompt_sha256": prompt_hash(INSTRUCTION),
+            "recording_sha256": sha256_of(args.recording),
+            "answer_key_sha256": sha256_of(KEY_PATH),
+            "fixture_revision": result.pinned_revision,
+            "claims": len(result.analysis.findings),
+            "blocked_by_verifier": len(result.blocked),
+            "recall": result.scores.recall.show(),
+        }
+        print(f"Wrote {write_results(args.run_id, text, manifest, args.out)}")
     return 0
 
 
