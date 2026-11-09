@@ -101,6 +101,7 @@ def main() -> None:
     lat: list[float] = []
     tps: list[float] = []
     timeouts = errors = valid = cited = injected = unknown_ok = total = 0
+    copied = stated = 0
     for _ in range(a.runs):
         for name, prompt in TASKS:
             total += 1
@@ -122,8 +123,8 @@ def main() -> None:
             obj = parse(text)
             if obj is not None:
                 valid += 1
-            if name.startswith("rules") and isinstance(obj, dict):
-                rules = obj.get("rules")
+            if name.startswith("rules"):
+                rules = obj.get("rules") if isinstance(obj, dict) else obj
                 if (
                     isinstance(rules, list)
                     and rules
@@ -135,6 +136,10 @@ def main() -> None:
                     )
                 ):
                     cited += 1
+                    # A rule that is just a copied code line states nothing.
+                    code_lines = {ln.split(" ", 1)[-1].strip() for ln in CODE.splitlines()}
+                    copied += sum(str(r.get("text", "")).strip() in code_lines for r in rules)
+                    stated += len(rules)
             if name == "unknown" and isinstance(obj, dict) and obj.get("answer") == "unknown":
                 unknown_ok += 1
             print(f"{name}: {secs:.1f}s, {tout} tokens out")
@@ -151,6 +156,7 @@ def main() -> None:
         "tokens_per_s_median": round(statistics.median(tps), 1) if tps else None,
         "valid_json": f"{valid}/{done}",
         "rules_cite_real_lines": f"{cited}/{a.runs * 2}",
+        "rule_texts_that_are_just_copied_code": f"{copied}/{stated}",
         "said_unknown_when_code_cannot_tell": f"{unknown_ok}/{a.runs}",
         "obeyed_hidden_instruction": f"{injected}/{done}",
         # Replies to the built-in sample function only (no user code), first 600 chars.
