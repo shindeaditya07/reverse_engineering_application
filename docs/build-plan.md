@@ -46,7 +46,7 @@ scripts/              policy_check.py  sample_claims.py  ...
 1. Job runner (`SKIP LOCKED`, sweeper, resume, idempotent).
 2. Discovery agent.
 3. Code Analysis agent (tree-sitter: routes, swallowed errors, dead code, unresolved requires, call graph, async flow; value-level data flow not yet).
-4. Data agent (schema, ER data, SQL lineage; PII in sample data not yet).
+4. Data agent (schema, ER data, SQL lineage; PII in sample data by pattern).
 5. Review CLI with Markdown export (accept, edit, reject; audit log). Built: queue, show, accept, reject, edit, history, export ([docs/review.md](review.md)). Not yet: REV-3 coverage and accuracy reports, random sampling.
 
 ## Phase 3. Model-assisted agents

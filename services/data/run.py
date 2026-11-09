@@ -15,10 +15,10 @@ from services.ingest.limits import MIB, Limits
 from services.ingest.pin import PinnedSource, pin_local
 from services.verifier import verify_claim
 
-# The answer-key kinds the Data agent is built to find. `pii` is not built, so it is not scored.
+# The answer-key kinds the Data agent is built to find.
 # `table`, `relation` and `unresolved` have no key kind: they are schema facts and Unknown claims
 # that state what could not be resolved (CLM-1.4, CLM-1.7).
-KINDS = frozenset({"sql_read", "sql_write", "column"})
+KINDS = frozenset({"sql_read", "sql_write", "column", "pii"})
 
 
 @dataclass(frozen=True)
