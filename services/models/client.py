@@ -218,3 +218,13 @@ async def logged_complete(
     )
     await session.flush()
     return out
+
+
+class LoggedClient:
+    """A client whose every call is logged to `model_calls` in the given session (NFR-6)."""
+
+    def __init__(self, inner: ModelClient, session: AsyncSession, run_id: uuid.UUID) -> None:
+        self._inner, self._session, self._run_id = inner, session, run_id
+
+    async def complete(self, request: Request) -> Completion:
+        return await logged_complete(self._inner, self._session, self._run_id, request)

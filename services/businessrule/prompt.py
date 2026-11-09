@@ -23,5 +23,9 @@ INSTRUCTION = (
 )
 
 
-def build_request(candidate: Candidate) -> Request:
-    return Request(INSTRUCTION, {"code": f"file: {candidate.path}\n{candidate.code}"})
+def build_request(candidate: Candidate, problem: str | None = None) -> Request:
+    """`problem` is a fixed sentence of ours (never model or legacy text) added on a retry."""
+    instruction = INSTRUCTION
+    if problem:
+        instruction += f"\nYour previous reply was rejected: {problem} Reply again, JSON only."
+    return Request(instruction, {"code": f"file: {candidate.path}\n{candidate.code}"})

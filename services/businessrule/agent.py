@@ -12,6 +12,7 @@ optimistic.
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from services.businessrule.candidates import Candidate, find_candidates
@@ -23,6 +24,8 @@ from services.models import ModelClient, ModelError
 
 MAX_RULE_CHARS = 300
 MAX_RULES_PER_CANDIDATE = 6
+# One retry per candidate. Not in rules_constants.yaml: OPS-1.1 limits job retries, not this.
+MAX_RETRIES = 1
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 
 
@@ -32,6 +35,7 @@ class RuleAnalysis:
     candidates: tuple[Candidate, ...]
     dropped: int  # model rules discarded: line outside the span, empty or too long
     unread: tuple[tuple[str, str], ...]
+    retries: int = 0  # extra model calls made after a hard failure
 
 
 def parse_reply(text: str) -> list[object] | None:
@@ -53,11 +57,12 @@ def _unknown(c: Candidate, why: str) -> Finding:
     )
 
 
-def findings_for(c: Candidate, reply: str) -> tuple[list[Finding], int]:
-    """Claims for one candidate from one reply, and how many rules were discarded."""
+def parse_rules(c: Candidate, reply: str) -> tuple[list[Finding], int, str | None]:
+    """Claims from one reply, how many rules were discarded, and the reason the reply as a
+    whole is unusable (None if it is usable). An empty list is a usable answer: no rule."""
     rules = parse_reply(reply)
     if rules is None:
-        return [_unknown(c, "the model's reply was not the requested JSON")], 0
+        return [], 0, "the reply was not the requested JSON."
     out: list[Finding] = []
     dropped = 0
     for rule in rules[:MAX_RULES_PER_CANDIDATE]:
@@ -84,25 +89,68 @@ def findings_for(c: Candidate, reply: str) -> tuple[list[Finding], int]:
             )
         )
     dropped += max(0, len(rules) - MAX_RULES_PER_CANDIDATE)
-    return out, dropped
+    if rules and not out:
+        return (
+            [],
+            dropped,
+            (f"every rule was empty, too long, or cited a line outside {c.start}-{c.end}."),
+        )
+    return out, dropped, None
 
 
-async def analyze(client: ModelClient, reader: SnapshotReader, paths: list[str]) -> RuleAnalysis:
+def findings_for(c: Candidate, reply: str) -> tuple[list[Finding], int]:
+    """Claims for one candidate from one reply, and how many rules were discarded."""
+    made, dropped, problem = parse_rules(c, reply)
+    if problem:
+        return [_unknown(c, problem.rstrip("."))], dropped
+    return made, dropped
+
+
+async def explain(client: ModelClient, c: Candidate) -> tuple[list[Finding], int, int]:
+    """Ask the model about one candidate. Findings, discarded rules, and retries used.
+
+    A hard failure (the call failed, or the reply is unusable as a whole) is retried up to
+    MAX_RETRIES times: a failed call again as it was, an unusable reply with the reason added.
+    A reply that parses is never retried, even if the verifier later rejects its sentence: the
+    same prompt at temperature 0 would give the same sentence. What still fails becomes an
+    Unknown claim (CLM-1.4); the claim writer demotes whatever the verifier blocks.
+    """
+    problem: str | None = None
+    why = "no attempt was made"
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            done = await client.complete(build_request(c, problem))
+        except ModelError as error:
+            why = f"the model call failed ({type(error).__name__})"
+            continue
+        made, dropped, problem = parse_rules(c, done.text)
+        if problem is None:
+            return made, dropped, attempt
+        why = problem.rstrip(".")
+    return [_unknown(c, why)], 0, MAX_RETRIES
+
+
+async def analyze(
+    client: ModelClient,
+    reader: SnapshotReader,
+    paths: list[str],
+    only: Callable[[str], bool] | None = None,
+) -> RuleAnalysis:
+    """Explain every candidate, or only those in files `only` accepts (one job per file)."""
     inventory = build_inventory(reader, paths)
     candidates, unread = find_candidates(reader, list(inventory.first_party_sources))
+    if only is not None:
+        candidates = [c for c in candidates if only(c.path)]
+        unread = [(p, r) for p, r in unread if only(p)]
     findings: list[Finding] = []
-    dropped = 0
+    dropped = retries = 0
     for cand in candidates:
-        try:
-            done = await client.complete(build_request(cand))
-        except ModelError as error:
-            findings.append(_unknown(cand, f"the model call failed ({type(error).__name__})"))
-            continue
-        made, lost = findings_for(cand, done.text)
+        made, lost, used = await explain(client, cand)
         findings += made
         dropped += lost
+        retries += used
     for path, reason in unread:
         findings.append(
             Finding(f"br:unread:{path}", "unresolved", "unknown", f"{path} was not read: {reason}.")
         )
-    return RuleAnalysis(tuple(findings), tuple(candidates), dropped, tuple(unread))
+    return RuleAnalysis(tuple(findings), tuple(candidates), dropped, tuple(unread), retries)
