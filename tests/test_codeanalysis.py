@@ -365,6 +365,83 @@ def test_a_long_registration_cites_at_most_the_excerpt_limit(tmp_path: Path) -> 
     assert end - start + 1 == 40
 
 
+# ---- flow ------------------------------------------------------------------------------
+
+CALLBACKS = """
+function run(id, cb) {
+  db.query('a', [id], (err, rows) => {
+    if (err) return cb(err);
+    return db.query('b', [rows[0].x], (err2, more) => {
+      return cb(null, more);
+    });
+  });
+}
+"""
+
+
+def test_nested_error_first_callbacks_are_one_confirmed_flow_claim(tmp_path: Path) -> None:
+    (flow,) = found(tmp_path, CALLBACKS, "flow")
+    assert flow.status == "confirmed" and flow.claim_id == "ca:callback-chain:app.js:5"
+    assert "run in app.js line 5 nests 2 error-first callbacks: db.query(), db.query()" in flow.text
+    assert flow.evidence == (("app.js", 5, 10),)
+
+
+def test_one_level_of_callback_is_not_a_chain(tmp_path: Path) -> None:
+    assert not found(tmp_path, "db.query('a', (err, rows) => { done(err); });", "flow")
+
+
+def test_callbacks_without_an_error_parameter_are_not_flow(tmp_path: Path) -> None:
+    code = "xs.forEach((x) => { ys.forEach((y) => { go(x, y); }); });"
+    assert not found(tmp_path, code, "flow")
+
+
+def test_a_single_function_literal_argument_that_is_not_last_is_ignored(tmp_path: Path) -> None:
+    code = "run((err) => { run((err2) => { x(); }); }, 1);"
+    assert not found(tmp_path, code, "flow")
+
+
+def test_a_promise_chain_needs_two_thens(tmp_path: Path) -> None:
+    chain = "function f() {\n  return load()\n    .then((a) => a)\n    .then((b) => b)\n    .catch(h);\n}"
+    (flow,) = found(tmp_path, chain, "flow")
+    assert flow.status == "confirmed" and "f in app.js line 4 runs a promise chain" in flow.text
+    assert "starts at load and continues with 3 steps, in order: .then, .then, .catch." in flow.text
+    assert not found(tmp_path, "load().then((a) => a).catch(h);", "flow")
+
+
+def test_an_async_function_lists_its_awaits_in_source_order(tmp_path: Path) -> None:
+    code = (
+        "async function go() {\n  await a();\n  for (const x of xs) { await b(x); }\n"
+        "  await new Promise((r) => setTimeout(r, 1));\n}"
+    )
+    (flow,) = found(tmp_path, code, "flow")
+    assert flow.claim_id == "ca:async-flow:app.js:3"
+    assert (
+        "go in app.js line 3 is async and awaits 3 steps, in source order: a(), b(), " in flow.text
+    )
+    assert "<expression>." in flow.text
+
+
+def test_awaits_in_a_nested_function_belong_to_that_function(tmp_path: Path) -> None:
+    code = (
+        "async function outer() {\n  await a();\n"
+        "  const inner = async () => { await b(); await c(); };\n}"
+    )
+    (flow,) = found(tmp_path, code, "flow")
+    assert "inner in app.js" in flow.text and "awaits 2 steps" in flow.text
+
+
+def test_a_long_step_list_is_cut_and_counted(tmp_path: Path) -> None:
+    awaits = "".join(f"  await s{i}();\n" for i in range(10))
+    (flow,) = found(tmp_path, "async function many() {\n" + awaits + "}", "flow")
+    assert "awaits 10 steps" in flow.text and "and 2 more" in flow.text
+
+
+def test_flow_claims_pass_the_verifier(tmp_path: Path) -> None:
+    result, reader = run(tmp_path, {"app.js": (APP.decode() + CALLBACKS).encode()})
+    flows = [f for f in result.findings if f.kind == "flow"]
+    assert flows and all(verify_claim(to_claim_inputs(f, reader), reader).passed for f in flows)
+
+
 # ---- the fixture -----------------------------------------------------------------------
 
 
@@ -376,9 +453,9 @@ def test_every_finding_on_the_fixture_passes_the_verifier() -> None:
 def test_fixture_score() -> None:
     scores = run_on_fixture().scores
     assert scores.missed_facts == () and scores.overclaims == ()
-    assert scores.recall.hits == scores.recall.total == 5
+    assert scores.recall.hits == scores.recall.total == 8
     # The key lists two of the ten routes; the other eight are real and count against precision.
-    assert (scores.precision.hits, scores.precision.total) == (5, 13)
+    assert (scores.precision.hits, scores.precision.total) == (8, 17)
 
 
 def test_the_fixture_states_what_it_could_not_follow() -> None:
