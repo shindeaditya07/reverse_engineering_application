@@ -32,3 +32,9 @@ whether it obeyed an instruction hidden in the code. The file holds numbers only
 It is a smoke test, not an accuracy measure. Accuracy on real rules comes from the Phase 3 eval
 against the answer key. Pass thresholds for choosing a model are not set; the first results
 decide them (open decision for the operator).
+
+`--prompt v2` uses a tighter Business Rule prompt (plain-English WHEN/THEN sentence, one worked
+example from a different function) and writes `model-benchmark-v2.json`. The first run of the
+default prompt (`v1`) on qwen2.5-coder:7b showed valid JSON, real line numbers, no obeyed hidden
+instruction, but rule texts that were copied code lines; `rule_texts_that_are_just_copied_code`
+measures that.
