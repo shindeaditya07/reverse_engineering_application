@@ -247,3 +247,83 @@ def test_recorded_run_replays_without_a_model(fixture_pin: PinnedSource) -> None
     result = run(run_analysis(fixture_pin, RecordedClient(path)))
     assert result.scores.recall.hits == 7 and result.scores.recall.total == 11
     assert not any(f.status == "confirmed" for f in result.analysis.findings)
+
+
+class Scripted:
+    """Replies in order; an Exception in the list is raised as a failed call."""
+
+    def __init__(self, replies: list[str | Exception]) -> None:
+        self.replies = list(replies)
+        self.requests: list[Request] = []
+
+    async def complete(self, request: Request) -> Completion:
+        self.requests.append(request)
+        reply = self.replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return Completion(reply, "scripted", "0" * 64, 1, 1, 0)
+
+
+GOOD = '{"rules":[{"text":"Orders over 100 get 10% off.","line":12}]}'
+
+
+def test_unusable_reply_is_retried_once_with_the_reason_and_the_same_code() -> None:
+    from services.businessrule.agent import explain
+
+    client = Scripted(["not json", GOOD])
+    made, dropped, retries = run(explain(client, CAND))
+    assert [f.text for f in made] == ["Orders over 100 get 10% off."] and retries == 1
+    first, second = client.requests
+    assert "rejected" not in first.instruction
+    assert "rejected: the reply was not the requested JSON" in second.instruction
+    assert first.untrusted == second.untrusted  # same block; the reason is our sentence only
+
+
+def test_two_unusable_replies_give_an_unknown_claim_and_stop() -> None:
+    from services.businessrule.agent import explain
+
+    client = Scripted(["nope", "still nope", GOOD])
+    made, _, retries = run(explain(client, CAND))
+    assert len(client.requests) == 2 and retries == 1  # never a third call
+    assert [f.status for f in made] == ["unknown"] and made[0].evidence == ()
+    assert "not the requested JSON" in made[0].text
+
+
+def test_a_failed_call_is_retried_as_it_was() -> None:
+    from services.businessrule.agent import explain
+    from services.models import ModelError
+
+    client = Scripted([ModelError("timeout"), GOOD])
+    made, _, retries = run(explain(client, CAND))
+    assert len(made) == 1 and retries == 1
+    assert client.requests[0] == client.requests[1]
+
+
+def test_two_failed_calls_give_an_unknown_claim_naming_the_failure() -> None:
+    from services.businessrule.agent import explain
+    from services.models import ModelError
+
+    made, _, _ = run(explain(Scripted([ModelError("a"), ModelError("b")]), CAND))
+    assert made[0].status == "unknown" and "ModelError" in made[0].text
+
+
+def test_rules_that_all_cite_outside_the_span_are_retried_with_the_range() -> None:
+    from services.businessrule.agent import explain
+
+    bad = '{"rules":[{"text":"x","line":99}]}'
+    client = Scripted([bad, GOOD])
+    made, _, retries = run(explain(client, CAND))
+    assert retries == 1 and len(made) == 1
+    assert "outside 10-14" in client.requests[1].instruction
+
+
+@pytest.mark.parametrize(
+    "reply",
+    ['{"rules":[]}', GOOD, '{"rules":[{"text":"ok","line":12},{"text":"bad","line":99}]}'],
+)
+def test_usable_replies_are_never_retried(reply: str) -> None:
+    from services.businessrule.agent import explain
+
+    client = Scripted([reply, GOOD])
+    _, _, retries = run(explain(client, CAND))
+    assert retries == 0 and len(client.requests) == 1

@@ -53,7 +53,7 @@ scripts/              policy_check.py  sample_claims.py  ...
 **Gate:** benchmark the local model on the operator's laptop first. If speed or quality is unusable, stop and report before building on it.
 1. Model client (local only), FakeClient, recorded outputs. **Done** (`docs/models.md`); benchmark script awaits the operator's run.
 2. Business Rule agent. **Built** (`docs/businessrule.md`); awaits a recorded model run and worker wiring.
-3. Verification wiring: retry, then demote to Unknown.
+3. Verification wiring: retry, then demote to Unknown. **Done** (`docs/businessrule.md`): retry only hard failures, demotion by the claim writer, `--rules` worker jobs.
 4. Diagram agent (Mermaid from stored data).
 5. Documentation agent.
 6. Sandbox and Test agent (two-stage dependency fetch).

@@ -1,6 +1,7 @@
 """Job handlers. A handler reads its input from the store, never from the job row alone, and
 writes only through the claim writer, so running it twice stores nothing twice."""
 
+import hashlib
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
@@ -10,20 +11,26 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.businessrule.agent import analyze as analyze_rules
+from services.businessrule.candidates import find_candidates
+from services.businessrule.store import store_rules
 from services.codeanalysis import analyze as analyze_code
 from services.codeanalysis.store import store_analysis
 from services.data import analyze as analyze_data
 from services.data.store import store_data
 from services.db.models import Snapshot, SnapshotFile
 from services.discovery import discover
+from services.discovery.inventory import build_inventory
 from services.discovery.store import store_discovery
 from services.evidence import SnapshotReader
 from services.jobs import Claimed, enqueue
 from services.jobs.runner import Handler
+from services.models import LoggedClient, ModelClient
 
 DISCOVERY = "discovery"
 CODE_ANALYSIS = "code_analysis"
 DATA = "data"
+BUSINESS_RULE = "business_rule"  # needs a model client; not one of AGENT_JOBS
 # The three agents that read one pinned snapshot and need nothing from each other. The spec
 # draws Discovery first, then Code Analysis and Data in parallel; nothing here enforces that
 # order, because none of the three reads another's claims.
@@ -103,3 +110,42 @@ def code_analysis_handler(sessions: SessionFactory, store: Path) -> Handler:
 
 def data_handler(sessions: SessionFactory, store: Path) -> Handler:
     return _agent_handler(sessions, store, analyze_data, store_data)
+
+
+def rule_job_hash(path: str) -> str:
+    """The identity of one Business Rule job: one per file, so no job holds many model calls
+    for long (OPS-1.2 stops a job at 600 seconds; the work already stored is kept)."""
+    return hashlib.sha256(f"{BUSINESS_RULE}:{path}".encode()).hexdigest()
+
+
+async def enqueue_business_rule(
+    session: AsyncSession, snapshot: Snapshot, run_id: uuid.UUID, store: Path
+) -> dict[str, tuple[uuid.UUID, bool]]:
+    """One job per file that has a candidate span or could not be read. A repeat adds none."""
+    _, reader = await load_reader(session, snapshot.id, store)
+    inventory = build_inventory(reader, reader.paths())
+    candidates, unread = find_candidates(reader, list(inventory.first_party_sources))
+    files = sorted({c.path for c in candidates} | {p for p, _ in unread})
+    return {
+        path: await enqueue(session, run_id, BUSINESS_RULE, rule_job_hash(path), snapshot.id)
+        for path in files
+    }
+
+
+def business_rule_handler(sessions: SessionFactory, store: Path, client: ModelClient) -> Handler:
+    """Explain one file's candidates and store the claims in one transaction. Every model call
+    is logged (NFR-6). A crash stores nothing; the retry finds stored claim keys unchanged."""
+
+    async def handle(job: Claimed) -> None:
+        async with sessions() as session:
+            snapshot, reader = await load_reader(session, job.snapshot_id, store)
+            wanted = {p for p in reader.paths() if rule_job_hash(p) == job.input_hash}
+            found = await analyze_rules(
+                LoggedClient(client, session, job.run_id),
+                reader,
+                reader.paths(),
+                only=wanted.__contains__,
+            )
+            await store_rules(session, snapshot.id, job.run_id, found, reader)
+
+    return handle

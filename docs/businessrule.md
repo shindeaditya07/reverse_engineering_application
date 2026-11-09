@@ -36,9 +36,6 @@ Claim IDs: `br:<path>:<line>:<n>` (rule), `br:unexplained:<span>` and `br:unread
 - The prompt is the benchmarked v2 prompt plus one sentence allowing `{"rules":[]}`. That
   sentence was not in the benchmark.
 
-## Not built yet
-Worker wiring (job type and queue), retry-then-demote (Phase 3 item 3), cross-file rules (a rule
-split between a caller and a callee is two partial claims), and rules inside config tables.
 
 ## First recorded result (2026-11-09)
 Key score: recall 7/11, precision 7/17 (floor). Hand audit: 16 of 17 sentences true, 1 false
@@ -46,3 +43,30 @@ Key score: recall 7/11, precision 7/17 (floor). Hand audit: 16 of 17 sentences t
 `evals/results/2026-11-09-businessrule-v1/hand-audit.md`. Re-record with the steps above after
 any change to the finder or prompt; `tests/test_businessrule.py` fails until prompts.json and
 the recording match.
+
+## Retry, demotion and the worker (Phase 3 item 3)
+- **Retry only hard failures, once.** A hard failure is a failed call (timeout, connection) or a
+  reply that is unusable as a whole: not the requested JSON, or every rule empty, too long or
+  citing a line outside the span. A failed call is retried as it was. An unusable reply is retried
+  with one fixed sentence of ours saying why; model and legacy text are never copied into it.
+  `MAX_RETRIES = 1` is my choice and is not in `rules_constants.yaml` (OPS-1.1 limits job
+  retries, not model-call retries).
+- **A reply that parses is never retried**, even if V-10 later rejects its sentence: at
+  temperature 0 the same prompt gives the same sentence. After the last attempt the span becomes
+  an Unknown claim.
+- **Demotion is the claim writer's.** `store_rules` sends every claim through `verify_and_store`;
+  a claim the verifier blocks is stored Unknown and queued for review (VER-1.1, VER-1.6).
+- **One job per file** (`business_rule`, identity = hash of the path), so a job holds few model
+  calls. It is not one of the always-on agents: `python -m services.worker analyze <src> --rules`
+  (or `work --rules`) builds the local client from `MODEL_ENDPOINT` and queues them; without
+  `--rules` no model is called. A job over 600 s is stopped by OPS-1.2 and retried; claims are
+  stored per job in one transaction, so a stopped job stores nothing and the retry starts over.
+- Every call is logged to `model_calls` (counts and hashes only).
+
+End-to-end check (scratch database, fixture, the committed recording): 13 jobs succeeded
+(3 agents and 10 files), 16 model calls logged, 14 Inferred and 4 Unknown Business Rule claims
+(3 demoted by the verifier, 1 unreadable file).
+
+## Not built yet
+Cross-file rules (a rule split between a caller and a callee is two partial claims), rules
+inside config tables, and a per-run summary line for model calls.
