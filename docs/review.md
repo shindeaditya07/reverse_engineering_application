@@ -13,6 +13,8 @@ copies under `SNAPSHOT_DIR`. Set `REVIEWER` or pass `--reviewer`.
 | `edit ID --text T --reason R [--cite PATH:START-END ...]` | New version, see below. |
 | `history [ID]` | Decisions, newest first; with an ID, every version of that claim. |
 | `export RUN [--out FILE]` | Markdown of accepted claims. |
+| `sample RUN [--draw] [--size N] [--seed S] [--below-minimum]` | Draws the accuracy sample once (with `--draw`), or shows its progress and the undecided IDs. |
+| `report RUN [--out FILE]` | Coverage and accuracy report (REV-3). |
 
 IDs are claim-version IDs. A unique prefix of 8 or more characters works.
 
@@ -31,6 +33,27 @@ IDs are claim-version IDs. A unique prefix of 8 or more characters works.
 
 Header: snapshot revision, run ID, date, and `Accepted: N of M claims` with rejected, edited and undecided counts, so the list is never read as the whole picture. Only claims whose latest version was accepted appear. Reviewer names are not exported.
 
+## Coverage and accuracy (REV-3)
+
+`report` computes both from stored decisions. Nothing in it is typed in.
+
+**Coverage (REV-3.1).** Modules = the first-party source files Discovery's inventory lists
+(tests included, vendored and generated files not). Endpoints = the `route` claims. A module or
+endpoint counts once an **accepted** claim cites it (an evidence range that overlaps the route's
+lines, for an endpoint). The denominator is always printed. A module the parser could not read
+stays in it, uncovered; its Unknown claim carries the reason.
+
+**Accuracy (REV-3.2 to 3.4).**
+- `sample RUN --draw` draws the sample once, at random, and records it with its seed in the audit log. A second draw for the same run is refused, so a bad draw cannot be re-rolled.
+- Eligible: the latest version of a claim that is Confirmed or Inferred and has no decision yet. **Draw the sample before reviewing starts.** Every claim you decide first leaves the pool, and people decide the easy ones first.
+- Unknown claims are not sampled. They say what is not known; counting a reject of one as an error would punish honesty.
+- The default size is the rule's minimum (60). Fewer is refused unless `--below-minimum`, and the report then says so in bold and cannot call the target demonstrated.
+- Accept = correct. Reject and edit = not correct (an edit means the claim needed changing).
+- Verdict: **demonstrated** only if the Wilson 95% interval's lower bound reaches 90%. A passing point estimate with a lower bound below 90% is reported as not demonstrated and says why. Undecided sampled claims mean **no verdict**.
+- The report also prints the pilot size limit (400) and flags a run that exceeds it (REV-3.5).
+
+The fixture run has 52 eligible claims, so it cannot reach the minimum of 60. The report is built for a pilot slice of up to 400 claims.
+
 ## Not built
 
-REV-3 coverage and accuracy reports and random sampling (REV-3.3), a UI, diagrams. Reasons are optional on accept; REV-1.2 says "reason" but does not say a non-empty one is required for accept.
+A UI, diagrams. Reasons are optional on accept; REV-1.2 says "reason" but does not say a non-empty one is required for accept.

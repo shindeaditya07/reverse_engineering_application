@@ -30,6 +30,7 @@ from services.review import (
     resolve_version_id,
     show,
 )
+from services.review.reports import accuracy, draw_sample, report_markdown
 from services.review.service import VIEWS
 from services.worker.handlers import load_reader
 
@@ -52,6 +53,16 @@ async def _reader_for(session: AsyncSession, version_id: uuid.UUID, store: Path)
             .where(ClaimVersion.id == version_id)
         )
     ).scalar_one()
+    _, reader = await load_reader(session, snapshot_id, store)
+    return reader
+
+
+async def _reader_for_run(session: AsyncSession, run_id: uuid.UUID, store: Path) -> SnapshotReader:
+    snapshot_id = (
+        await session.execute(select(Claim.snapshot_id).where(Claim.run_id == run_id).limit(1))
+    ).scalar_one_or_none()
+    if snapshot_id is None:
+        raise LookupError(f"run {run_id} has no claims")
     _, reader = await load_reader(session, snapshot_id, store)
     return reader
 
@@ -87,6 +98,20 @@ def build_parser() -> argparse.ArgumentParser:
     h = sub.add_parser("history", help="decisions, newest first")
     h.add_argument("id", nargs="?", help="limit to the claim this version belongs to")
     h.add_argument("--limit", type=int, default=50)
+
+    d = sub.add_parser(
+        "sample", help="draw the accuracy sample for a run once, or show it (REV-3.3)"
+    )
+    d.add_argument("run")
+    d.add_argument("--draw", action="store_true", help="draw it (refused if one exists)")
+    d.add_argument("--size", type=int, help="claims to draw; default is the rule's minimum")
+    d.add_argument("--seed", type=int, help="fixed seed; default is random and is recorded")
+    d.add_argument("--below-minimum", action="store_true", help="allow fewer than the minimum")
+    d.add_argument("--reviewer", default=os.environ.get("REVIEWER"), help="or env REVIEWER")
+
+    r3 = sub.add_parser("report", help="coverage and accuracy report for a run (REV-3)")
+    r3.add_argument("run")
+    r3.add_argument("--out", help="file to write; default stdout")
 
     x = sub.add_parser("export", help="Markdown of the accepted claims of a run")
     x.add_argument("run")
@@ -174,6 +199,36 @@ async def _dispatch(session: AsyncSession, args: argparse.Namespace, store: Path
             print(
                 f"{when}  {d['decision']:<6} {who}  {d['key']} v{d['version']}  {d['reason'] or ''}"
             )
+        return 0
+    if args.command == "sample":
+        run = uuid.UUID(args.run)
+        if args.draw:
+            drawn = await draw_sample(
+                session,
+                run,
+                drawn_by=args.reviewer or "",
+                size=args.size,
+                seed=args.seed,
+                below_minimum=args.below_minimum,
+            )
+            print(f"drew {len(drawn.version_ids)} of {drawn.eligible} eligible (seed {drawn.seed})")
+        acc = await accuracy(session, run)
+        if acc.sample is None:
+            print(acc.verdict)
+            return 1
+        print(f"sample: {acc.size} claims, {acc.decided} decided, {acc.correct} accepted")
+        print(f"{acc.verdict}")
+        for version_id in acc.undecided:
+            print(f"  undecided {str(version_id)[:SHORT]}")
+        return 0
+    if args.command == "report":
+        reader = await _reader_for_run(session, uuid.UUID(args.run), store)
+        doc = await report_markdown(session, uuid.UUID(args.run), reader)
+        if args.out:
+            Path(args.out).write_text(doc, encoding="utf-8")
+            print(f"wrote {args.out}")
+        else:
+            print(doc)
         return 0
     text = await export_markdown(session, uuid.UUID(args.run), today=dt.datetime.now(dt.UTC).date())
     if args.out:
