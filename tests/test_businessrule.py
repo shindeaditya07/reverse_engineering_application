@@ -18,7 +18,7 @@ from services.businessrule.prompt import build_request
 from services.businessrule.run import pin_fixture, run_analysis
 from services.discovery.inventory import build_inventory
 from services.evidence import SnapshotReader
-from services.ingest.pin import PinnedSource
+from services.ingest.pin import PinnedSource, pin_local
 from services.models import Completion, FakeClient, Request
 
 
@@ -327,3 +327,24 @@ def test_usable_replies_are_never_retried(reply: str) -> None:
     client = Scripted([reply, GOOD])
     _, _, retries = run(explain(client, CAND))
     assert retries == 0 and len(client.requests) == 1
+
+
+def test_template_helpers_are_not_candidates(tmp_path: Path) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.js").write_text(
+        "const hbs = create({\n"
+        "  helpers: {\n"
+        "    cls: (n) => { if (n === 1) { return 'col-12'; } return 'col-6'; },\n"
+        "  },\n"
+        "});\n"
+        "hbs.handlebars.registerHelper('pay', (s) => { if (s === 'Paid') { return 'ok'; } });\n"
+        "function discount(total) {\n"
+        "  if (total > 100) { return total * 0.9; }\n"
+        "  return total;\n"
+        "}\n"
+    )
+    (src / "package.json").write_text('{"name": "x"}')
+    pinned = pin_local(src, tmp_path / "store")
+    found, _ = _candidates(pinned)
+    assert [c.key for c in found] == ["app.js:7-10"]
