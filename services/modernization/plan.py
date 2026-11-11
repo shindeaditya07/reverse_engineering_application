@@ -25,6 +25,9 @@ PHASES = {
 }
 _NAME = re.compile(r"^\w{1,40}$")
 _LEADING = frozenset({"api", "admin"})
+_GENERIC_DIRS = frozenset(
+    {"routes", "route", "controllers", "handlers", "api", "src", "lib", "app"}
+)
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,13 @@ def _segment(path: str) -> str | None:
     return parts[0] if parts and _NAME.match(parts[0]) else None
 
 
+def _folder(file: str) -> str | None:
+    """The folder a route file sits in, below the top routes folder, if it is a plain word."""
+    parts = file.split("/")
+    name = parts[-2] if len(parts) >= 3 else ""
+    return name if name.lower() not in _GENERIC_DIRS and _NAME.match(name) else None
+
+
 def _stem(path: str) -> str:
     base = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
     return base.split("_")[0].rstrip("s")
@@ -110,17 +120,20 @@ def _boundaries(usable: list[DocClaim]) -> tuple[list[Boundary], list[Item], lis
     route_files: dict[str, set[str]] = defaultdict(set)
     counts: dict[str, int] = defaultdict(int)  # boundary -> routes, not claims
     shown: dict[str, str] = {}  # singular form -> the shortest spelling seen
+
+    def place(seg: str, key: str, file: str) -> None:
+        stem = seg.rstrip("s") or seg
+        if stem not in shown or len(seg) < len(shown[stem]):
+            shown[stem] = seg
+        names[stem].add(key)
+        counts[stem] += 1
+        route_files[stem].add(file)
+
     for r in found.routes:
         for route in r.routes:
             seg = _segment(route.split(" ", 1)[1]) if " " in route else None
-            if seg is None:
-                continue
-            stem = seg.rstrip("s") or seg
-            if stem not in shown or len(seg) < len(shown[stem]):
-                shown[stem] = seg
-            names[stem].add(r.key)
-            counts[stem] += 1
-            route_files[stem].add(r.file)
+            if seg is not None:
+                place(seg, r.key, r.file)
     table_of = {t.name: t for t in found.tables if _NAME.match(t.name)}
     owner: dict[str, str] = {}
     for b in names:
@@ -128,6 +141,20 @@ def _boundaries(usable: list[DocClaim]) -> tuple[list[Boundary], list[Item], lis
             if t.rstrip("s") == b.rstrip("s"):
                 owner[t] = b
     # A name seen on one route only, with no table of that name, is not a boundary.
+    keep = {b for b in names if counts[b] >= 2 or b in owner.values()}
+    # Routes whose path gave no usable name are grouped by the folder their file sits in.
+    for r in found.routes:
+        for route in r.routes:
+            seg = _segment(route.split(" ", 1)[1]) if " " in route else None
+            if seg is not None and (seg.rstrip("s") or seg) in keep:
+                continue
+            folder = _folder(r.file)
+            if folder:
+                place(folder, r.key, r.file)
+    for t in table_of:
+        for b in names:
+            if t.rstrip("s") == b.rstrip("s"):
+                owner[t] = b
     names = {b: k for b, k in names.items() if counts[b] >= 2 or b in owner.values()}
     files_of: dict[str, set[str]] = {b: set(route_files[b]) for b in names}
     for a in found.access:
