@@ -115,6 +115,7 @@ def test_a_literal_require_is_not_dynamic(tmp_path: Path) -> None:
     [
         ("setInterval(job, 1000);", ["timer"]),
         ("cron.schedule('* * * * *', job);", ["timer"]),
+        ("const cron = require('node-cron');", ["undeclared"]),  # no timer: loading it starts none
         ("setTimeout(job, 1000);", []),
         ("https.request(opts, cb);", ["http"]),
         ("http.get(url, cb);", ["http"]),

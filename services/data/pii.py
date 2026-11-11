@@ -25,6 +25,22 @@ from services.verifier.flags import detect_flags
 
 DATA_SUFFIXES = (".json", ".ndjson", ".csv", ".tsv", ".sql", ".txt", ".yml", ".yaml", ".xml")
 LISTED_LINES = 6
+# Dependency lockfiles list package names and registry URLs, never application data. One on a
+# real app matched the field-name pattern ("address") on two lines of package names.
+LOCKFILES = frozenset(
+    {
+        "package-lock.json",
+        "npm-shrinkwrap.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "composer.lock",
+        "poetry.lock",
+        "Pipfile.lock",
+        "Gemfile.lock",
+        "Cargo.lock",
+        "go.sum",
+    }
+)
 _LABEL = {
     "pii:email": "e-mail addresses",
     "pii:phone": "phone numbers",
@@ -45,7 +61,7 @@ def _lines(numbers: list[int]) -> str:
 def pii_findings(reader: SnapshotReader, paths: list[str]) -> list[Finding]:
     out: list[Finding] = []
     for path in sorted(paths):
-        if not path.endswith(DATA_SUFFIXES):
+        if not path.endswith(DATA_SUFFIXES) or path.rsplit("/", 1)[-1] in LOCKFILES:
             continue
         flags = detect_flags(path, reader)
         if flags.generated or flags.vendored:

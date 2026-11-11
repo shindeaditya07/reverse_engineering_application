@@ -34,7 +34,7 @@ NODE_BUILTINS = frozenset(
     ).split()
 )
 _REQUIRE = re.compile(r"""\brequire\(\s*(['"])([^'"]+)\1\s*\)""")
-_TIMER = re.compile(r"\bsetInterval\s*\(|\bcron\.schedule\s*\(|\bnode-cron\b")
+_TIMER = re.compile(r"\bsetInterval\s*\(|\bcron\.schedule\s*\(")
 _HTTP_OUT = re.compile(r"\b(?:https?\.(?:request|get)|axios\.\w+|fetch)\s*\(")
 _SOCKET_OUT = re.compile(r"\bnet\.(?:connect|createConnection)\s*\(")
 PATTERNS = (_REQUIRE, _TIMER, _HTTP_OUT, _SOCKET_OUT)
