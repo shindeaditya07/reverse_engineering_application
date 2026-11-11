@@ -62,6 +62,7 @@ class Plan:
     boundaries: tuple[Boundary, ...]
     shared_tables: tuple[Cite, ...]
     items: tuple[Item, ...]
+    ungrouped: dict[str, tuple[Cite, ...]]  # kind -> accepted claims that no proposal uses
     unknown: dict[str, tuple[str, ...]]  # kind -> keys of claims that are not accepted
     accepted: int
     total: int
@@ -203,6 +204,10 @@ def build_plan(claims: list[DocClaim]) -> Plan:
     used.update(c.key for c in shared)
     raw.sort(key=lambda r: (r[0], r[1], r[2]))
     items = tuple(Item(f"P-{n:02d}", p, a, cites) for n, (p, _, a, cites) in enumerate(raw, 1))
+    ungrouped: dict[str, list[Cite]] = defaultdict(list)
+    for c in sorted(usable, key=lambda x: x.key):
+        if c.key not in used:
+            ungrouped[c.kind].append(_cite(c))
     unknown: dict[str, list[str]] = defaultdict(list)
     for c in claims:
         if c.key not in {u.key for u in usable}:
@@ -211,6 +216,7 @@ def build_plan(claims: list[DocClaim]) -> Plan:
         tuple(boundaries),
         tuple(shared),
         items,
+        {k: tuple(v) for k, v in sorted(ungrouped.items())},
         {k: tuple(sorted(v)) for k, v in sorted(unknown.items())},
         len(usable),
         len(claims),

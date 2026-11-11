@@ -78,6 +78,19 @@ def render(plan: Plan, stamp: str) -> tuple[str, str]:
             out += [_evidence(c) for c in i.cites]
             mapping[i.id] = [c.key for c in i.cites]
         out.append("")
+    if plan.ungrouped:
+        out += [
+            "## Accepted claims with no proposal",
+            "",
+            "These claims are accepted but no rule turns them into a proposal or a boundary. "
+            "They are listed so that nothing accepted is missing from this document.",
+            "",
+        ]
+        for kind, cites in plan.ungrouped.items():
+            out += [f"### {kind} ({len(cites)})", ""]
+            out += [_evidence(c) for c in cites]
+            out.append("")
+            mapping[f"ungrouped:{kind}"] = [c.key for c in cites]
     out += ["## Unknown dependencies", ""]
     if plan.unknown:
         out += [
