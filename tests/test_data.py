@@ -529,3 +529,15 @@ def test_cli_fails_when_the_verifier_blocks_a_finding(
     blocked = type(real)(real.pinned_revision, real.analysis, real.scores, (("x", ("V-2",)),))
     monkeypatch.setattr(cli, "run_on_fixture", lambda: blocked)
     assert cli.main([]) == 1
+
+
+def test_a_mysql_identifier_placeholder_is_read_not_unreadable(tmp_path: Path) -> None:
+    code = "db.query('SELECT * FROM orders ORDER BY ?? DESC', col, cb);"
+    findings = app(tmp_path, code)
+    (read,) = by_kind(findings, "sql_read")
+    assert "reads all columns of orders" in read.text
+    assert by_kind(findings, "unresolved") == []
+
+
+def test_an_identifier_placeholder_as_the_table_is_flagged_dynamic() -> None:
+    assert analyze_sql("SELECT * FROM ?? WHERE id = ?").dynamic_table

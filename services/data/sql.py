@@ -37,6 +37,9 @@ def _aliases(root: exp.Expression) -> dict[str, str]:
 
 
 def analyze_sql(text: str) -> Statement:
+    # `??` is the mysql driver's identifier placeholder (a column or table name supplied at run
+    # time). sqlglot cannot parse it, so it becomes a dynamic name, like a template hole.
+    text = text.replace("??", f" {DYN}ident__ ")
     try:
         root = sqlglot.parse_one(text, read="mysql")
     except SqlglotError as error:
