@@ -12,7 +12,7 @@ from services.diagram.model import DiagramClaim
 
 _TABLE = re.compile(
     r"^(?P<file>\S+) defines table (?P<name>\w+) with columns (?P<cols>[\w, ]+?)"
-    r"(?: \(primary key (?P<pk>[\w, ]+)\))?\.$"
+    r"(?: \(primary key (?P<pk>[\w, ]+)\)| \(no primary key\))?\.$"
 )
 _GUESSED = re.compile(
     r"^(?P<t>\w+)\.(?P<c>\w+) looks like a reference to (?P<rt>\w+)\.(?P<rc>\w+) by its name"

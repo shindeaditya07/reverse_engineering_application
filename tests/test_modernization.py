@@ -186,3 +186,48 @@ def test_routes_without_an_api_prefix_are_grouped_by_their_first_name() -> None:
 def test_a_name_on_one_route_with_no_table_is_not_a_boundary() -> None:
     plan = build_plan([_route(1, "GET /sitemap.xml"), _route(2, "GET /lang/:locale")])
     assert plan.boundaries == ()
+
+
+def _route_in(file: str, line: int, *routes: str) -> DocClaim:
+    return DocClaim(
+        f"ca:route:{file}:{line}",
+        "route",
+        "inferred",
+        f"{file} line {line} registers {', '.join(routes)}.",
+        True,
+    )
+
+
+def test_routes_with_hyphenated_paths_are_grouped_by_their_folder() -> None:
+    plan = build_plan(
+        [
+            _route_in("routes/user/signIn.js", 3, "GET /sign-in", "POST /sign-in"),
+            _route_in("routes/user/logOut.js", 2, "GET /log-out"),
+            _route_in("routes/home.js", 1, "GET /"),
+            DocClaim(
+                "data:table:equantom.sql:users",
+                "table",
+                "confirmed",
+                "equantom.sql defines table users with columns id, email (no primary key).",
+                True,
+            ),
+        ]
+    )
+    (b,) = plan.boundaries
+    assert b.name == "user" and len(b.routes) == 2 and len(b.tables) == 1  # users table attaches
+    assert plan.shared_tables == ()
+
+
+def test_a_table_without_a_primary_key_is_still_listed() -> None:
+    plan = build_plan(
+        [
+            DocClaim(
+                "data:table:s.sql:orders",
+                "table",
+                "confirmed",
+                "s.sql defines table orders with columns id, total (no primary key).",
+                True,
+            )
+        ]
+    )
+    assert len(plan.shared_tables) == 1
