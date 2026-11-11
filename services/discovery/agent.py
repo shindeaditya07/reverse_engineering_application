@@ -194,6 +194,9 @@ def _crlf(reader: SnapshotReader, path: str) -> Finding | None:
     )
 
 
+BINARY_PROBE = 8000  # same probe length the ingest scan uses to call a file binary
+
+
 def discover(reader: SnapshotReader, paths: list[str]) -> Discovery:
     inventory = build_inventory(reader, paths)
     declared = set(inventory.declared) | set(inventory.declared_dev)
@@ -202,6 +205,9 @@ def discover(reader: SnapshotReader, paths: list[str]) -> Discovery:
     findings += [_provenance(reader, p, "vendored") for p in inventory.vendored]
     unscanned: list[tuple[str, str]] = []
     for path in sorted(paths):
+        if b"\0" in reader.raw(path)[:BINARY_PROBE]:
+            unscanned.append((path, "binary"))  # an image or archive is not a text-encoding fault
+            continue
         found, decodes = _bytes_findings(reader, path)
         findings += found
         if not decodes:
