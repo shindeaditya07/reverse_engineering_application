@@ -69,7 +69,7 @@ def test_nothing_accepted_gives_an_empty_plan_that_says_so(claims: list[DocClaim
     none = [dataclasses.replace(c, accepted=False) for c in claims]
     text = doc(none)
     assert "0 of " in text and "No accepted claim gives a basis" in text
-    assert "No accepted route claims" in text and "[proposal]" not in text
+    assert "No boundary is proposed" in text and "[proposal]" not in text
 
 
 def test_unknown_claims_are_never_a_basis_even_if_marked_accepted() -> None:
@@ -157,3 +157,32 @@ def test_cli_needs_an_output_folder() -> None:
 def test_render_returns_a_map_of_proposals_to_claim_keys(claims: list[DocClaim]) -> None:
     _, mapping = render(build_plan(claims), "stamp")
     assert '"P-01"' in mapping and '"boundary:orders"' in mapping
+
+
+def _route(line: int, *routes: str) -> DocClaim:
+    return DocClaim(
+        f"ca:route:routes/r.js:{line}",
+        "route",
+        "confirmed",
+        f"routes/r.js line {line} registers {', '.join(routes)}.",
+        True,
+    )
+
+
+def test_routes_without_an_api_prefix_are_grouped_by_their_first_name() -> None:
+    plan = build_plan(
+        [
+            _route(1, "GET /admin/products/:page?"),
+            _route(2, "POST /admin/product/insert"),
+            _route(3, "GET /product/:id"),
+            _route(4, "GET /admin/customers"),
+            _route(5, "POST /customer/login_action"),
+        ]
+    )
+    names = {b.name: len(b.routes) for b in plan.boundaries}
+    assert names == {"customer": 2, "product": 3}  # admin and public routes join; plural joins
+
+
+def test_a_name_on_one_route_with_no_table_is_not_a_boundary() -> None:
+    plan = build_plan([_route(1, "GET /sitemap.xml"), _route(2, "GET /lang/:locale")])
+    assert plan.boundaries == ()
