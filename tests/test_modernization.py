@@ -231,3 +231,25 @@ def test_a_table_without_a_primary_key_is_still_listed() -> None:
         ]
     )
     assert len(plan.shared_tables) == 1
+
+
+def test_accepted_claims_with_no_proposal_are_listed_not_lost() -> None:
+    read = DocClaim(
+        "data:sql:dao/x.js:4",
+        "sql_read",
+        "confirmed",
+        "dao/x.js line 4 reads users.",
+        True,
+    )
+    lone = _route_in("routes/home.js", 1, "GET /")
+    skipped = dataclasses.replace(
+        read, key="data:sql:dao/x.js:9", text="dao/x.js line 9 reads z.", accepted=False
+    )
+    claims = [read, lone, skipped]
+    plan = build_plan(claims)
+    assert set(plan.ungrouped) == {"route", "sql_read"}
+    md, mapping = render(plan, "stamp")
+    assert "## Accepted claims with no proposal" in md and "dao/x.js line 4 reads users." in md
+    assert "line 9 reads z" not in md  # not accepted, never quoted
+    assert check(md, claims) == []
+    assert "ungrouped:sql_read" in mapping
