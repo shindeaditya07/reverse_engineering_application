@@ -518,8 +518,20 @@ def _route_findings(modules: dict[str, Module]) -> list[Finding]:
             method = _text(prop)
             if method not in HTTP_METHODS:
                 continue
+            args = node.child_by_field_name("arguments")
+            if method == "get" and args is not None and len(args.named_children) == 1:
+                continue  # Express: app.get('name') with one argument reads a setting
             out.append(_route(module, node, method, module.receivers[_text(obj)], mounts))
     return out
+
+
+def _join(prefix: str, path: str) -> str:
+    """A route path under its mount point; a mount of '/' adds nothing (Express joins them so)."""
+    if path == "/" and prefix:
+        return prefix
+    if path.startswith("/"):
+        return prefix.rstrip("/") + path
+    return prefix + path
 
 
 def _route(
@@ -573,7 +585,7 @@ def _route(
     prefix, mount_lines = prefix_info
     for file, line in mount_lines:
         evidence.append((file, line, line))
-    full = [prefix + v if v != "/" or not prefix else prefix for v in values]
+    full = [_join(prefix, v) for v in values]
     listed = ", ".join(f"{method.upper()} {p}" for p in full)
     return Finding(
         claim_id,

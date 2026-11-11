@@ -25,7 +25,7 @@ _ROUTE = re.compile(r"\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|ALL|USE) (\S+)")
 _STEPS = re.compile(
     r"(?:in source order|in order|error-first callbacks): (?P<steps>.+?)\.(?: Each step .*)?$"
 )
-_FLOW_HEAD = re.compile(r"^(?P<fn>\S+) in (?P<file>\S+) line (?P<line>\d+)")
+_FLOW_HEAD = re.compile(r"^(?P<fn>.+?) in (?P<file>\S+) line (?P<line>\d+)")
 
 
 @dataclass(frozen=True)
