@@ -282,10 +282,28 @@ def test_v10_unrelated_explanation_demotes_to_unknown(reader: SnapshotReader) ->
         reader,
         status="inferred",
         producer_kind="model",
-        explanation="Customers get a refund email.",
+        explanation="Customers receive a refund email.",
     )
     verdict = verify_claim(c, reader)
     assert failed(verdict) == {"V-10"} and verdict.final_status == "unknown"
+
+
+def test_v10_known_blind_spot_one_shared_common_word_is_enough_to_pass(
+    reader: SnapshotReader,
+) -> None:
+    """At the 0.1 floor, an off-topic sentence that happens to share one word with the code
+    ('get' appears in `app.get`) scores 0.25 and is not demoted. This pins the limit that
+    docs/verifier.md describes, so a later change to the floor shows up here."""
+    c = claim(
+        reader,
+        status="inferred",
+        producer_kind="model",
+        explanation="Customers get a refund email.",
+    )
+    verdict = verify_claim(c, reader)
+    assert verdict.passed
+    detail = next(r.detail for r in verdict.results if r.check_id == "V-10") or ""
+    assert "overlap 0.25" in detail
 
 
 def test_v10_matching_explanation_changes_nothing_and_never_promotes(
@@ -297,6 +315,20 @@ def test_v10_matching_explanation_changes_nothing_and_never_promotes(
     )  # fmt: skip
     verdict = verify_claim(c, reader)
     assert verdict.passed and verdict.final_status == "inferred"
+
+
+def test_v10_keeps_a_true_explanation_written_in_other_words(reader: SnapshotReader) -> None:
+    """The first real model run had four true explanations at 0.29 to 0.43, all demoted by the
+    old 0.5 floor. A paraphrase that shares only some words with the code must now pass."""
+    c = claim(
+        reader, status="inferred", producer_kind="model",
+        explanation="Each period gets its own report endpoint, created in one loop.",
+    )  # fmt: skip
+    verdict = verify_claim(c, reader)
+    detail = next(r.detail for r in verdict.results if r.check_id == "V-10") or ""
+    assert verdict.passed and verdict.final_status == "inferred", detail
+    score = float(detail.split("overlap ")[1].split(",")[0])
+    assert 0.1 <= score < 0.5, detail  # it would have been demoted at the old floor
 
 
 def test_v10_is_skipped_without_an_explanation_or_without_resolved_evidence(

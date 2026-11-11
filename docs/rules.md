@@ -1,6 +1,6 @@
 # Evidence and output rules
 
-Version 1.2 · 2026-11-05 · draft for review · merges amendments A1 to A14 (A3 still open) · adds OPS-1.2 · source: `business-case.md` v0.1
+Version 1.3 · 2026-11-11 · draft for review · merges amendments A1 to A14 (A3 still open) · adds OPS-1.2 · VER-1.7 floor lowered from 0.5 to 0.1 · source: `business-case.md` v0.1
 
 These are the rules about how **this platform** may make statements about someone else's legacy application. They are not the legacy app's business rules; those are *outputs* (the business rules catalog). Every rule has a stable ID. Code, tests, labels and PRs cite IDs, never prose. Numbers appear here and are copied into `rules_constants.yaml` keyed by the same ID; a CI check later verifies each value appears in its cited passage.
 
@@ -33,7 +33,7 @@ Rule strength: **MUST / MUST NOT** are enforced by a test, lint or CI job. **SHO
 - **VER-1.3** Verification fails closed: an error, timeout or missing input is a block, never a pass.
 - **VER-1.4** The verifier MUST be tested against a corpus of known-bad claims and a corpus of known-good claims. It MUST catch 100% of the seeded bad corpus. The false-block rate on the good corpus is reported with a confidence interval.
 - **VER-1.5** The verifier package MUST keep at least 95% branch coverage, enforced in CI.
-- **VER-1.7** Check V-10 (explanation consistent with evidence) is a heuristic. It MAY demote a claim to Unknown when its overlap score is below 0.5. It MUST NOT confirm or promote anything, and Confirmed status MUST NOT depend on it. Its catch rate is reported separately.
+- **VER-1.7** Check V-10 (explanation consistent with evidence) is a heuristic. It MAY demote a claim to Unknown when its overlap score is below 0.1. It MUST NOT confirm or promote anything, and Confirmed status MUST NOT depend on it. Its catch rate is reported separately.
 - **VER-1.6** A claim whose model-generated explanation contradicts its cited evidence MUST be demoted to Unknown and queued.
 
 ## 4. Human review (REV)
