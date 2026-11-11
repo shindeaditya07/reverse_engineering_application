@@ -548,3 +548,19 @@ def test_a_large_route_file_does_not_crash_the_parser_binding(tmp_path: Path) ->
     )
     assert done.returncode == 0, done.stderr[-400:]
     assert int(done.stdout.strip()) >= 100
+
+
+def test_get_with_one_argument_reads_a_setting_and_is_not_a_route(tmp_path: Path) -> None:
+    assert routes(tmp_path, "const p = app.get('port');\nif (app.get('env') === 'x') {}") == []
+
+
+def test_a_router_mounted_at_the_root_does_not_double_the_slash(tmp_path: Path) -> None:
+    files = {
+        "app.js": APP + b"app.use('/', require('./r'));\n",
+        "r.js": b"const express = require('express');\nconst r = express.Router();\n"
+        b"r.get('/admin/setup', h);\nr.get('/', h);\nmodule.exports = r;\n",
+    }
+    result, _ = run(tmp_path, files)
+    first, second = [f for f in result.findings if f.kind == "route"]
+    assert "GET /admin/setup." in first.text and "//" not in first.text
+    assert "GET /." in second.text

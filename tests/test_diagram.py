@@ -192,3 +192,14 @@ async def test_loader_skips_unknown_and_withheld_and_honours_accepted_only(
 async def test_loader_refuses_a_run_with_no_claims(session: AsyncSession) -> None:  # noqa: F811
     with pytest.raises(LookupError):
         await load_claims(session, uuid.uuid4(), accepted_only=False)
+
+
+def test_a_flow_in_an_anonymous_function_is_drawn_not_omitted() -> None:
+    text = (
+        "an anonymous function in routes/a.js line 5 is async and awaits 2 steps, "
+        "in source order: db.a.find(), render()."
+    )
+    found = extract([DiagramClaim("ca:async-flow:routes/a.js:5", "flow", "confirmed", text)])
+    assert found.omitted == ()
+    (flow,) = found.flows
+    assert flow.name == "an anonymous function" and flow.steps == ("db.a.find()", "render()")
