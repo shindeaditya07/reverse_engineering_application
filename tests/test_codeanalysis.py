@@ -564,3 +564,22 @@ def test_a_router_mounted_at_the_root_does_not_double_the_slash(tmp_path: Path) 
     first, second = [f for f in result.findings if f.kind == "route"]
     assert "GET /admin/setup." in first.text and "//" not in first.text
     assert "GET /." in second.text
+
+
+def test_routes_on_an_exported_parameter_are_inferred_and_say_why(tmp_path: Path) -> None:
+    files = {
+        "app.js": b"const consign = require('consign');\n",
+        "routes/home.js": b"module.exports = (app) => {\n  app.get('/', (req, res) => res.end());\n"
+        b"  app.post('/x', h);\n};\n",
+    }
+    result, _ = run(tmp_path, files)
+    first, second = [f for f in result.findings if f.kind == "route"]
+    assert first.status == "inferred" and "GET /" in first.text
+    assert "probably the Express app" in first.text and "was not found" in first.text
+    assert "POST /x" in second.text
+
+
+def test_an_exported_function_whose_parameter_is_not_an_app_gives_no_route(tmp_path: Path) -> None:
+    files = {"lib/f.js": b"module.exports = (cache) => {\n  cache.get('/a');\n};\n"}
+    result, _ = run(tmp_path, files)
+    assert [f for f in result.findings if f.kind == "route"] == []

@@ -244,3 +244,10 @@ def test_cli_fails_when_the_verifier_blocks_a_finding(
     blocked = type(real)(real.pinned_revision, real.discovery, real.scores, (("x", ("V-2",)),))
     monkeypatch.setattr(cli, "run_on_fixture", lambda: blocked)
     assert cli.main([]) == 1
+
+
+def test_a_binary_file_is_listed_as_binary_not_claimed_as_an_encoding_fault(tmp_path: Path) -> None:
+    png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\xff\xfe\x00\x80"
+    found, _ = run(tmp_path, {"public/logo.png": png})
+    assert found.findings == ()
+    assert found.unscanned == (("public/logo.png", "binary"),)

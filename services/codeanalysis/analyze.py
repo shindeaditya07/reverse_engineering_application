@@ -35,6 +35,7 @@ from services.evidence import SnapshotReader, Unresolved
 from services.evidence.refs import max_excerpt_lines
 
 PARSER_VERSIONS = "tree-sitter 0.26 / tree-sitter-javascript 0.25"
+PARAM_RECEIVERS = frozenset({"app", "router", "server"})  # names taken as an Express object
 HTTP_METHODS = frozenset("get post put patch delete all head options".split())
 _PARSER = Parser(Language(tree_sitter_javascript.language()))
 _TEST_DIRS = frozenset({"test", "tests", "__tests__"})
@@ -62,7 +63,7 @@ class Module:
     imports: dict[str, str] = field(default_factory=dict)  # alias -> resolved file
     named: dict[str, tuple[str, str]] = field(default_factory=dict)  # local -> (file, export)
     express_names: set[str] = field(default_factory=set)
-    receivers: dict[str, str] = field(default_factory=dict)  # name -> "app" | "router"
+    receivers: dict[str, str] = field(default_factory=dict)  # name -> "app" | "router" | "param"
     escapes: bool = False  # the whole module object is used as a value
 
 
@@ -220,6 +221,29 @@ def _scan_module(module: Module, paths: frozenset[str]) -> None:
             f"{n}.Router" for n in module.express_names
         }:
             module.receivers[_text(name)] = "router" if called.endswith("Router") else "app"
+    _bind_exported_parameter(module)
+
+
+def _bind_exported_parameter(module: Module) -> None:
+    """`module.exports = (app) => {...}`: the parameter is probably the Express app, but only
+    the code that loads this file knows. Routes on it are Inferred, never Confirmed."""
+    for node in module.root.named_children:
+        if node.type != "expression_statement" or not node.named_children:
+            continue
+        assign = node.named_children[0]
+        if assign.type != "assignment_expression":
+            continue
+        left, right = assign.child_by_field_name("left"), assign.child_by_field_name("right")
+        if left is None or right is None or _text(left) != "module.exports":
+            continue
+        if right.type not in _FUNCTIONS:
+            continue
+        params = right.child_by_field_name("parameters") or right.child_by_field_name("parameter")
+        first = params.named_children[0] if params is not None and params.named_children else None
+        if params is not None and params.type == "identifier":
+            first = params
+        if first is not None and first.type == "identifier" and _text(first) in PARAM_RECEIVERS:
+            module.receivers.setdefault(_text(first), "param")
 
 
 def _declared_functions(module: Module) -> dict[str, Node]:
@@ -569,6 +593,17 @@ def _route(
             "unknown",
             f"{path} line {first} registers a {method.upper()} route whose path is computed at "
             f"run time, so its path is not known.",
+            tuple(evidence),
+        )
+    if kind == "param":
+        listed = ", ".join(f"{method.upper()} {v}" for v in values)
+        return Finding(
+            claim_id,
+            "route",
+            "inferred",
+            f"{path} line {first} registers {listed}{qualifier} on a parameter that is probably "
+            f"the Express app; the code that loads this file was not found, so the full path is "
+            f"not known.",
             tuple(evidence),
         )
     prefix_info = ("", []) if kind == "app" else _prefix(path, mounts)
