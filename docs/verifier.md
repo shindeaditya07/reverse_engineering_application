@@ -55,7 +55,7 @@ Either way every failure puts the claim in the review queue with reason `verifie
 
 It takes the content words of the explanation (camelCase and snake_case split, a crude plural
 strip, small stop-word list) and asks what share appear in the cited excerpts or their paths.
-Below the floor, `v10_demote_overlap_below: 0.5` (a proposed constant), the claim becomes
+Below the floor, `v10_demote_overlap_below: 0.1`, the claim becomes
 Unknown. It runs only when a claim has an explanation and at least one resolved reference, and
 it can only demote. A Confirmed claim never depends on it.
 
@@ -78,14 +78,21 @@ Result at the time of writing:
 - Seeded bad claims caught: 50 of 50, 95% interval 93% to 100%. The test requires the
   `VER-1.4` constant (100%).
 - V-10 on its own: 7 of 7 caught, interval 65% to 100%.
-- Good claims falsely blocked: 5 of 50 (10%, interval 4% to 21%). All five are V-10 demotions
-  of Inferred claims, that is 5 of the 7 Inferred claims that carry an explanation. **The
-  deterministic checks blocked none.**
+- Good claims falsely blocked: 0 of 50 (0%, interval 0% to 7%). V-10 demotions of Inferred
+  claims that carry an explanation: 0 of 7 (interval 0% to 35%).
 
-That V-10 number is the one to watch. On these stand-in explanations it demotes most Inferred
-claims, which costs reviewer time in the queue. It is not tuned to the corpus, because the
-floor is a rule constant and the explanations are not real model output. Re-measure in Phase 3
-with real explanations before trusting or changing the floor.
+**The floor was changed after seeing these numbers.** At 0.5 it demoted 5 of those 7 good
+claims. The first real model run (2026-11-11, expressCart slice, qwen2.5-coder:7b) then
+demoted all 4 of its Inferred claims that carried an explanation, and all 4 were true on
+reading the source (scores 0.29, 0.40, 0.40, 0.43). The 7 seeded bad explanations score 0.00;
+the 7 good ones score 0.14 to 0.75. The floor is now 0.1 (VER-1.7, rules v1.3), which sits
+between those groups. That is a choice made with the data in view, from 11 true claims, so do
+not read the 0% above as measured accuracy. The seeded bad explanations are all off-topic.
+V-10 still cannot catch a wrong explanation that reuses the code's words, at any floor. At 0.1
+it also lets through a short off-topic sentence that shares one common word with the code:
+"Customers get a refund email." scores 0.25 because `get` appears in `app.get`. No floor fixes
+that without demoting at least 3 of the 11 true claims (a floor of 0.3 would). A test pins this.
+Re-measure when there are more real explanations.
 
 ## Coverage gate (VER-1.5)
 
