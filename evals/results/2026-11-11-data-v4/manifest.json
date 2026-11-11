@@ -1,0 +1,20 @@
+{
+  "analyzer_sha256": "d2153aa1d4a1dc779f5462e270127bb146c528660a5a08a8b216091b5fcd1518",
+  "answer_key_sha256": "92f6e4ad7d25c4cfdd1b05026e5ea1f643fd0ef3d9075476d346d2534793a983",
+  "blocked_by_verifier": 0,
+  "commit": "85064ef8c491b039a7bec0c2d809fe8c1e561cf1",
+  "findings": 28,
+  "fixture_revision": "c0120433d5f8e0022732a9c4a436e31889d89c5b66d84996640997404dd11a4b",
+  "kind": "data",
+  "model": null,
+  "parsers": "sqlglot 30.29.0 (MySQL dialect); tree-sitter-javascript 0.25",
+  "prompt_sha256": null,
+  "recall": "100% (7/7, 95% interval 65% to 100%)",
+  "unread": [
+    {
+      "path": "lib/legacy_labels.js",
+      "reason": "unreadable: 'lib/legacy_labels.js' is not UTF-8; cite a byte range instead"
+    }
+  ],
+  "worktree_dirty": true
+}
