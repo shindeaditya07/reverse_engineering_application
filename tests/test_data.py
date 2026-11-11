@@ -410,6 +410,17 @@ def pii(tmp_path: Path, files: Mapping[str, str]) -> list[Finding]:
     return by_kind(list(result.findings), "pii")
 
 
+def test_a_lockfile_is_not_data_even_when_package_names_look_like_personal_fields(
+    tmp_path: Path,
+) -> None:
+    """A real app's package-lock.json matched the field-name pattern on two lines of package
+    names. A lockfile lists dependencies, so no personal-data claim is made about it, while the
+    same bytes in a data file still are."""
+    lock = PEOPLE
+    assert pii(tmp_path, {"package-lock.json": lock, "web/pnpm-lock.yaml": lock}) == []
+    assert len(pii(tmp_path, {"data/people.json": lock})) == 1
+
+
 def test_a_data_file_with_personal_data_gets_one_inferred_claim_without_the_values(
     tmp_path: Path,
 ) -> None:
