@@ -48,7 +48,11 @@ def render(plan: Plan, stamp: str) -> tuple[str, str]:
     ]
     mapping: dict[str, list[str]] = {}
     if not plan.boundaries:
-        out += ["", "No accepted route claims, so no boundary is proposed."]
+        out += [
+            "",
+            "No boundary is proposed. A name needs at least two accepted routes, or a table of "
+            "the same name, to be proposed.",
+        ]
     for b in plan.boundaries:
         out += ["", f"### {b.name}", ""]
         out += [f"- Files: {', '.join(f'`{f}`' for f in b.files)}"] if b.files else []

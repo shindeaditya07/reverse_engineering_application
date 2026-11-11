@@ -24,7 +24,7 @@ PHASES = {
     4: "Structural changes",
 }
 _NAME = re.compile(r"^\w{1,40}$")
-_API = re.compile(r"^/api/(\w{1,40})")
+_LEADING = frozenset({"api", "admin"})
 
 
 @dataclass(frozen=True)
@@ -69,6 +69,14 @@ def _cite(c: DocClaim) -> Cite:
     return Cite(c.key, c.status, " ".join(c.text.split()))
 
 
+def _segment(path: str) -> str | None:
+    """The first path segment after any leading `api` or `admin`, if it is a plain word."""
+    parts = [p for p in path.split("?")[0].strip("/").split("/") if p]
+    while parts and parts[0] in _LEADING:
+        parts = parts[1:]
+    return parts[0] if parts and _NAME.match(parts[0]) else None
+
+
 def _stem(path: str) -> str:
     base = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
     return base.split("_")[0].rstrip("s")
@@ -100,18 +108,27 @@ def _boundaries(usable: list[DocClaim]) -> tuple[list[Boundary], list[Item], lis
     found = extract([DiagramClaim(c.key, c.kind, c.status, c.text) for c in usable])
     names: dict[str, set[str]] = defaultdict(set)  # boundary -> route claim keys
     route_files: dict[str, set[str]] = defaultdict(set)
+    counts: dict[str, int] = defaultdict(int)  # boundary -> routes, not claims
+    shown: dict[str, str] = {}  # singular form -> the shortest spelling seen
     for r in found.routes:
         for route in r.routes:
-            m = _API.match(route.split(" ", 1)[1]) if " " in route else None
-            if m and _NAME.match(m[1]):
-                names[m[1]].add(r.key)
-                route_files[m[1]].add(r.file)
+            seg = _segment(route.split(" ", 1)[1]) if " " in route else None
+            if seg is None:
+                continue
+            stem = seg.rstrip("s") or seg
+            if stem not in shown or len(seg) < len(shown[stem]):
+                shown[stem] = seg
+            names[stem].add(r.key)
+            counts[stem] += 1
+            route_files[stem].add(r.file)
     table_of = {t.name: t for t in found.tables if _NAME.match(t.name)}
     owner: dict[str, str] = {}
     for b in names:
         for t in table_of:
             if t.rstrip("s") == b.rstrip("s"):
                 owner[t] = b
+    # A name seen on one route only, with no table of that name, is not a boundary.
+    names = {b: k for b, k in names.items() if counts[b] >= 2 or b in owner.values()}
     files_of: dict[str, set[str]] = {b: set(route_files[b]) for b in names}
     for a in found.access:
         for b in names:
@@ -119,7 +136,7 @@ def _boundaries(usable: list[DocClaim]) -> tuple[list[Boundary], list[Item], lis
                 files_of[b].add(a.file)
     boundaries = [
         Boundary(
-            b,
+            shown[b],
             tuple(_cite(by_key[k]) for k in sorted(names[b])),
             tuple(_cite(by_key[table_of[t].key]) for t, o in sorted(owner.items()) if o == b),
             tuple(sorted(files_of[b])),
