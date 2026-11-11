@@ -6,6 +6,10 @@ number, a table of numbers, a `throw`, or an HTTP 4xx answer. The model never ch
 look; it only explains a span this module found, so every rule it states can be tied to cited
 lines.
 
+Template helpers are skipped: functions registered in a `helpers` object or through
+`registerHelper` format text for a view (CSS classes, labels, messages) and are not domain
+behaviour. In the first pilot about a third of model claims came from them.
+
 Functions longer than the limit are not sent whole: their direct `if` statements that carry a
 signal are. Test files are skipped. The signals were chosen after the fixture was read, so the
 fixture score is optimistic.
@@ -47,6 +51,24 @@ def _own_nodes(node: Node) -> Iterator[Node]:
         yield current
         if current.type not in _FUNCTION_TYPES:
             stack.extend(reversed(current.children))
+
+
+def _in_template_helpers(node: Node) -> bool:
+    """True if this function sits in a `helpers: {...}` object or a `registerHelper(...)` call."""
+    parent = node.parent
+    while parent is not None:
+        if parent.type == "pair":
+            key = parent.child_by_field_name("key")
+            if key is not None and _text(key).strip("'\"") == "helpers":
+                return True
+        if parent.type == "call_expression":
+            fn = parent.child_by_field_name("function")
+            if fn is not None and fn.type == "member_expression":
+                prop = fn.child_by_field_name("property")
+                if prop is not None and _text(prop) == "registerHelper":
+                    return True
+        parent = parent.parent
+    return False
 
 
 def _is_number(node: Node | None) -> bool:
@@ -147,7 +169,7 @@ def find_candidates(
             continue
         lines = reader.lines(path)
         for node in _walk(parsed):
-            if node.type in _FUNCTION_TYPES:
+            if node.type in _FUNCTION_TYPES and not _in_template_helpers(node):
                 for cand in _from_function(path, node, lines, limit):
                     out.setdefault((cand.path, cand.start, cand.end), cand)
     return sorted(out.values(), key=lambda c: (c.path, c.start, c.end)), unread
